@@ -15,7 +15,7 @@ class GeminiConstants {
     return "$geminiApiUrl?key=$geminiApiKey";
   }
   static const List<String> responseModalities = ["AUDIO"];
-  static const String defaultVoiceName = "Puck";
+  static const String defaultVoiceName = "Aoede";
   static const int micSampleRate = 16000;
   static const int outputSampleRate = 24000;
   static const String micMimeType = "audio/pcm;rate=16000";

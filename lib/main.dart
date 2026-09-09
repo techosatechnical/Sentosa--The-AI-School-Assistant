@@ -22,6 +22,11 @@ class SentosaApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         fontFamily: 'Segoe UI',
+        fontFamilyFallback: const [
+          'Nirmala UI',
+          'Noto Sans Malayalam',
+          'Arial',
+        ],
       ),
       home: const HomeScreen(),
     );

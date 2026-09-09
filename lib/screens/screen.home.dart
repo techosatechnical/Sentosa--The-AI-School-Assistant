@@ -21,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isListening = false;
   bool _isSpeaking = false;
   bool _showAdmissionModal = false;
-  String _statusText = "Say 'Sentosa' or tap mic to start";
+  String _statusText = "Say 'Sentosa' or tap mic";
   final List<Map<String, String>> _messages = [];
   String _currentModelTurn = "";
 
@@ -94,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _isListening = false;
           _isSpeaking = false;
-          _statusText = "Say 'Sentosa' or tap mic to start";
+          _statusText = "Say 'Sentosa' or tap mic";
         });
       }
     };
@@ -172,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen>
       setState(() {
         _isListening = false;
         _isSpeaking = false;
-        _statusText = "Say 'Sentosa' or tap mic to start";
+        _statusText = "Say 'Sentosa' or tap mic";
       });
       await _geminiService.disconnect();
     } else {

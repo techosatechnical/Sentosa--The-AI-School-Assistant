@@ -101,54 +101,58 @@ class SentosaHeader extends StatelessWidget {
               ],
             ),
 
-            // Golden Admission Quick Action
-            GestureDetector(
-              onTap: onAdmissionTap,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFFF59E0B).withValues(alpha: 0.28),
-                      const Color(0xFFD97706).withValues(alpha: 0.18),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFFBBF24).withValues(alpha: 0.5),
-                    width: 1.2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFF59E0B).withValues(alpha: 0.18),
-                      blurRadius: 12,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: onAdmissionTap,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
                     ),
-                  ],
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.assignment_turned_in_rounded,
-                      color: Color(0xFFFBBF24),
-                      size: 16,
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      "ADMISSION",
-                      style: TextStyle(
-                        color: Color(0xFFFDE68A),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFFF59E0B).withValues(alpha: 0.28),
+                          const Color(0xFFD97706).withValues(alpha: 0.18),
+                        ],
                       ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFFBBF24).withValues(alpha: 0.5),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.18),
+                          blurRadius: 12,
+                        ),
+                      ],
                     ),
-                  ],
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.assignment_turned_in_rounded,
+                          color: Color(0xFFFBBF24),
+                          size: 16,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          "ADMISSION",
+                          style: TextStyle(
+                            color: Color(0xFFFDE68A),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
