@@ -19,7 +19,8 @@ class GeminiConstants {
   static const int micSampleRate = 16000;
   static const int outputSampleRate = 24000;
   static const String micMimeType = "audio/pcm;rate=16000";
-  static const int audioBufferThreshold = 96000; 
+  static const int audioBufferThreshold = 144000; // 3.0s cushion preventing buffer underruns on long turns
+  static const Duration acousticGracePeriod = Duration(milliseconds: 350);
   static const Duration inactivityTimeout = Duration(seconds: 15);
 
   static Map<String, dynamic> getSetupMessage({

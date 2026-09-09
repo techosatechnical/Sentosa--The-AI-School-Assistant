@@ -97,11 +97,16 @@ class WakeWordService {
     if (line.isEmpty) return;
     logger.d("WakeEngine output: $line");
 
-    if (line == "READY") {
+    if (line.startsWith("READY")) {
       logger.i(
-        "Windows Speech Recognizer is READY and listening for 'Sentosa'!",
+        "Windows Speech Recognizer is READY and listening for 'Sentosa'! ($line)",
       );
       onStatusUpdate?.call("Listening for 'Sentosa'...");
+      return;
+    }
+
+    if (line.startsWith("LOW_CONFIDENCE:") || line.startsWith("REJECTED:")) {
+      logger.d("WakeEngine diagnostic: $line");
       return;
     }
 
@@ -112,17 +117,26 @@ class WakeWordService {
         final confidence = double.tryParse(parts[2].trim()) ?? 0.5;
         logger.i("WakeEngine recognized: '$phrase' (confidence: $confidence)");
         final lower = phrase.toLowerCase();
-        if (lower.contains("admission")) {
-          onAdmissionCommand?.call();
-          return;
-        }
+
+        // Dedicated Stop / Cancel compound commands
         if (lower.contains("stop") || lower.contains("cancel")) {
           onInterruptDetected?.call(phrase);
           return;
         }
-        if (lower.contains("sentosa") || lower.contains("start")) {
-          onWakeWordDetected?.call(phrase, confidence);
-          onInterruptDetected?.call(phrase);
+
+        // Direct admission commands
+        if (lower.contains("admission")) {
+          onAdmissionCommand?.call();
+          return;
+        }
+
+        // Wake-word & phonetic greeting variants
+        if (lower.contains("sentosa") ||
+            lower.contains("centosa") ||
+            lower.contains("santosa") ||
+            lower.contains("tosa") ||
+            lower.contains("start")) {
+          onWakeWordDetected?.call("Sentosa", confidence);
         }
       }
     }

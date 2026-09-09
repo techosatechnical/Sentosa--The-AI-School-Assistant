@@ -109,7 +109,11 @@ class _HomeScreenState extends State<HomeScreen>
     _wakeWordService.onInterruptDetected = (phrase) {
       logger.i("Interrupt word detected: $phrase");
       if (_isSpeaking) {
-        _geminiService.interrupt();
+        final lower = phrase.toLowerCase();
+        if (lower.contains("stop") || lower.contains("cancel")) {
+          logger.i("User explicitly commanded to stop/cancel speech: $phrase");
+          _geminiService.interrupt();
+        }
       }
     };
 

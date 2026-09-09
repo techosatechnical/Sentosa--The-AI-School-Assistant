@@ -19,8 +19,11 @@ class GeminiService {
   final BytesBuilder _turnBuffer = BytesBuilder();
   final List<Uint8List> _playbackQueue = [];
   bool _isPlaying = false;
+  bool _isModelResponding = false;
+  bool _isMicrophoneLocked = false;
   int _audioChunkCount = 0;
   Timer? _inactivityTimer;
+  Timer? _gracePeriodTimer;
 
   ConversationState _conversationState = ConversationState.standby;
 
@@ -117,6 +120,10 @@ class GeminiService {
 
   void sendTextMessage(String text) {
     if (_channel != null) {
+      _isModelResponding = true;
+      _isMicrophoneLocked = true;
+      _gracePeriodTimer?.cancel();
+
       final payload = {
         "clientContent": {
           "turns": [
@@ -147,9 +154,12 @@ class GeminiService {
   }
 
   void interrupt() {
-    if (_isPlaying || _conversationState == ConversationState.speaking) {
-      logger.i("Intentional user interrupt triggered via wake-word 'Sentosa'. Stopping speech immediately.");
+    if (_isPlaying || _conversationState == ConversationState.speaking || _isModelResponding) {
+      logger.i("Intentional user interrupt triggered via voice command. Stopping speech immediately.");
+      _gracePeriodTimer?.cancel();
       _stopPlayback();
+      _isModelResponding = false;
+      _isMicrophoneLocked = false;
       _setConversationState(ConversationState.active);
       onSpeakingStateChanged?.call(false);
       onStatusUpdate?.call("Listening... (Say your question)");
@@ -177,6 +187,10 @@ class GeminiService {
         }
 
         if (serverContent['modelTurn'] != null) {
+          _isModelResponding = true;
+          _isMicrophoneLocked = true;
+          _gracePeriodTimer?.cancel();
+
           final parts = serverContent['modelTurn']['parts'] as List?;
           if (parts != null) {
             for (final part in parts) {
@@ -195,6 +209,7 @@ class GeminiService {
                   "Received audio chunk (${pcmChunk.length} bytes, total turn buffer: ${_turnBuffer.length} bytes)",
                 );
 
+                // If turn is long, buffer a healthy 3.0s cushion before starting playback
                 if (_turnBuffer.length >= GeminiConstants.audioBufferThreshold) {
                   _enqueueBufferedAudio();
                 }
@@ -203,11 +218,15 @@ class GeminiService {
           }
         }
 
+        // When turnComplete arrives, flush all remaining audio immediately
         if (serverContent['turnComplete'] == true) {
           logger.i(
-            "Gemini turnComplete received. Enqueueing remaining audio buffer (${_turnBuffer.length} bytes)",
+            "Gemini turnComplete received. Total turn buffer: ${_turnBuffer.length} bytes",
           );
-          _enqueueBufferedAudio();
+          _isModelResponding = false;
+          if (_turnBuffer.isNotEmpty) {
+            _enqueueBufferedAudio();
+          }
           onTurnComplete?.call();
         }
       }
@@ -232,17 +251,19 @@ class GeminiService {
   Future<void> _playNextInQueue() async {
     if (_playbackQueue.isEmpty) {
       _isPlaying = false;
-      _setConversationState(ConversationState.active);
-      onSpeakingStateChanged?.call(false);
-      onStatusUpdate?.call("Listening... (Speak naturally or say 'Sentosa')");
-      logger.i("Audio playback queue completed. Returning to active listening mode.");
+      // If Gemini has finished generating the full turn and no chunks remain
+      if (!_isModelResponding && _turnBuffer.isEmpty) {
+        _setConversationState(ConversationState.active);
+        onSpeakingStateChanged?.call(false);
+        _scheduleMicrophoneUnlock();
+      }
       return;
     }
 
     _isPlaying = true;
     _setConversationState(ConversationState.speaking);
     onSpeakingStateChanged?.call(true);
-    onStatusUpdate?.call("Sentosa Speaking... (Say 'Sentosa' to interrupt)");
+    onStatusUpdate?.call("Sentosa Speaking... (Say 'Stop Sentosa' to interrupt)");
 
     final nextAudio = _playbackQueue.removeAt(0);
     try {
@@ -256,10 +277,22 @@ class GeminiService {
     }
   }
 
+  void _scheduleMicrophoneUnlock() {
+    _gracePeriodTimer?.cancel();
+    _gracePeriodTimer = Timer(GeminiConstants.acousticGracePeriod, () {
+      _isMicrophoneLocked = false;
+      onStatusUpdate?.call("Listening... (Speak naturally or say 'Sentosa')");
+      logger.i("Audio playback and acoustic grace period completed. Microphone unlocked.");
+    });
+  }
+
   Future<void> _stopPlayback() async {
+    _gracePeriodTimer?.cancel();
     _turnBuffer.clear();
     _playbackQueue.clear();
     _isPlaying = false;
+    _isModelResponding = false;
+    _isMicrophoneLocked = false;
     onSpeakingStateChanged?.call(false);
     await _audioPlayer.stop();
   }
@@ -286,10 +319,14 @@ class GeminiService {
       _audioChunkCount = 0;
       _audioStreamSubscription = recordStream.listen((data) {
         if (_channel != null) {
-          // KEY SCHOOL NOISE PROTECTION:
-          // When Sentosa is actively speaking, do NOT stream microphone noise to Gemini sink.
-          // This prevents ambient school chatter or speaker feedback from cutting off speech.
-          if (_isPlaying || _conversationState == ConversationState.speaking) {
+          // STRICT ACOUSTIC & ECHO LOCK:
+          // While Gemini is generating, playing audio, or during the post-speech acoustic grace period,
+          // do NOT stream microphone audio to Gemini sink.
+          if (_isMicrophoneLocked ||
+              _isPlaying ||
+              _isModelResponding ||
+              _playbackQueue.isNotEmpty ||
+              _conversationState == ConversationState.speaking) {
             return;
           }
 
@@ -327,6 +364,7 @@ class GeminiService {
   Future<void> disconnect() async {
     logger.i("Disconnecting GeminiService session...");
     _inactivityTimer?.cancel();
+    _gracePeriodTimer?.cancel();
     await _stopPlayback();
     await _audioStreamSubscription?.cancel();
     _audioStreamSubscription = null;
@@ -337,15 +375,18 @@ class GeminiService {
       await _channel?.sink.close();
     } catch (_) {}
     _channel = null;
+    _isModelResponding = false;
+    _isMicrophoneLocked = false;
     _setConversationState(ConversationState.standby);
     onSpeakingStateChanged?.call(false);
-    onStatusUpdate?.call("Say 'Sentosa' or tap mic to start");
+    onStatusUpdate?.call("Say 'Sentosa' or tap mic");
     onDisconnected?.call();
     logger.i("GeminiService disconnected (Standby).");
   }
 
   void dispose() {
     _inactivityTimer?.cancel();
+    _gracePeriodTimer?.cancel();
     disconnect();
     _audioPlayer.dispose();
     _audioRecorder.dispose();

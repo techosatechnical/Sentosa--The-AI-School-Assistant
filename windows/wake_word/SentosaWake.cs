@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Speech.Recognition;
 using System.Threading;
@@ -23,33 +24,98 @@ namespace SentosaWake {
             }
 
             try {
-                using (SpeechRecognitionEngine sre = new SpeechRecognitionEngine()) {
+                // Explicitly bind to the en-US recognizer installed on Windows to prevent culture mismatch
+                RecognizerInfo recognizer = null;
+                foreach (RecognizerInfo ri in SpeechRecognitionEngine.InstalledRecognizers()) {
+                    if (ri.Culture.Name.Equals("en-US", StringComparison.OrdinalIgnoreCase)) {
+                        recognizer = ri;
+                        break;
+                    }
+                }
+                if (recognizer == null && SpeechRecognitionEngine.InstalledRecognizers().Count > 0) {
+                    recognizer = SpeechRecognitionEngine.InstalledRecognizers()[0];
+                }
+
+                using (SpeechRecognitionEngine sre = (recognizer != null) 
+                    ? new SpeechRecognitionEngine(recognizer) 
+                    : new SpeechRecognitionEngine()) {
+                    
+                    CultureInfo targetCulture = (recognizer != null) ? recognizer.Culture : CultureInfo.GetCultureInfo("en-US");
+                    
                     Choices choices = new Choices();
                     choices.Add(new string[] {
+                        // Exact Wake Words & Greetings
                         "Sentosa",
                         "Hey Sentosa",
                         "Hi Sentosa",
                         "Hello Sentosa",
+                        "OK Sentosa",
+                        
+                        // Phonetic & Acoustic Homophones for non-dictionary "Sentosa"
+                        "Centosa",
+                        "Santosa",
+                        "San tosa",
+                        "Sen tosa",
+                        "Santhosa",
+                        "Sendosa",
+                        "Hey Centosa",
+                        "Hi Centosa",
+                        "Hello Centosa",
+                        "Hey Santosa",
+                        "Hi Santosa",
+                        "Hello Santosa",
+                        
+                        // Compound Interrupts (Requires explicit 2-word command to prevent accidental speech cutoff)
                         "Sentosa Stop",
-                        "Stop",
-                        "Cancel",
+                        "Stop Sentosa",
+                        "Cancel Sentosa",
+                        "Sentosa Cancel",
+                        
+                        // Admission Direct Commands
+                        "Sentosa Admission",
                         "Admission",
                         "Admissions",
                         "Admission procedure",
-                        "Start admission",
-                        "Sentosa admission"
+                        "Start admission"
                     });
+
                     GrammarBuilder gb = new GrammarBuilder(choices);
-                    sre.LoadGrammar(new Grammar(gb));
+                    gb.Culture = targetCulture;
+                    Grammar grammar = new Grammar(gb);
+                    grammar.Name = "SentosaWakeGrammar";
+                    sre.LoadGrammar(grammar);
+
                     sre.SetInputToDefaultAudioDevice();
+
                     sre.SpeechRecognized += delegate(object sender, SpeechRecognizedEventArgs e) {
-                        if (e.Result != null && e.Result.Confidence >= 0.40f) {
-                            Console.WriteLine("RECOGNIZED:" + e.Result.Text + ":" + e.Result.Confidence.ToString("F2"));
+                        if (e.Result != null) {
+                            string text = e.Result.Text;
+                            float conf = e.Result.Confidence;
+                            
+                            // Multi-word phrases have higher acoustic entropy; accept >= 0.28
+                            // Single words accept >= 0.32
+                            bool isMultiWord = text.Contains(" ");
+                            float threshold = isMultiWord ? 0.28f : 0.32f;
+
+                            if (conf >= threshold) {
+                                Console.WriteLine("RECOGNIZED:" + text + ":" + conf.ToString("F2", CultureInfo.InvariantCulture));
+                                Console.Out.Flush();
+                            } else {
+                                Console.WriteLine("LOW_CONFIDENCE:" + text + ":" + conf.ToString("F2", CultureInfo.InvariantCulture));
+                                Console.Out.Flush();
+                            }
+                        }
+                    };
+
+                    sre.SpeechRecognitionRejected += delegate(object sender, SpeechRecognitionRejectedEventArgs e) {
+                        if (e.Result != null && e.Result.Confidence >= 0.15f) {
+                            Console.WriteLine("REJECTED:" + e.Result.Text + ":" + e.Result.Confidence.ToString("F2", CultureInfo.InvariantCulture));
                             Console.Out.Flush();
                         }
                     };
+
                     sre.RecognizeAsync(RecognizeMode.Multiple);
-                    Console.WriteLine("READY");
+                    Console.WriteLine("READY:" + targetCulture.Name);
                     Console.Out.Flush();
                     
                     while (true) {
