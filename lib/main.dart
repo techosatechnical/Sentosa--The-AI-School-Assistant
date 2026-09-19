@@ -15,11 +15,11 @@ class SentosaApp extends StatelessWidget {
       title: 'Sentosa',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0B1120),
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFDBEAFC),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF38BDF8),
-          brightness: Brightness.dark,
+          seedColor: const Color(0xFF0284C7),
+          brightness: Brightness.light,
         ),
         fontFamily: 'Segoe UI',
         fontFamilyFallback: const [
@@ -32,4 +32,3 @@ class SentosaApp extends StatelessWidget {
     );
   }
 }
-

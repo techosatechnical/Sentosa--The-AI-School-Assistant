@@ -115,6 +115,7 @@ class _TranscriptViewState extends State<TranscriptView> {
     // Active conversation transcript view
     return Container(
       width: double.infinity,
+      height: 350,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(22),
