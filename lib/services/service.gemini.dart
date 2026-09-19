@@ -188,6 +188,21 @@ class GeminiService {
           logger.i("Gemini server signalled interrupted.");
         }
 
+        // Extract spoken audio transcription (exact text spoken by the model)
+        String? outputTranscriptionText;
+        if (serverContent['outputTranscription'] != null &&
+            serverContent['outputTranscription']['text'] != null) {
+          outputTranscriptionText = serverContent['outputTranscription']['text'] as String;
+        } else if (serverContent['outputAudioTranscription'] != null &&
+            serverContent['outputAudioTranscription']['text'] != null) {
+          outputTranscriptionText = serverContent['outputAudioTranscription']['text'] as String;
+        }
+
+        if (outputTranscriptionText != null && outputTranscriptionText.isNotEmpty) {
+          logger.i("Gemini Spoken Transcription: $outputTranscriptionText");
+          onTranscriptUpdate?.call(outputTranscriptionText);
+        }
+
         if (serverContent['modelTurn'] != null) {
           _isModelResponding = true;
           _isMicrophoneLocked = true;
@@ -196,9 +211,11 @@ class GeminiService {
           final parts = serverContent['modelTurn']['parts'] as List?;
           if (parts != null) {
             for (final part in parts) {
-              if (part['text'] != null) {
+              // Ignore parts that represent internal model thoughts (thought == true)
+              final isThought = part['thought'] == true;
+              if (part['text'] != null && !isThought && outputTranscriptionText == null) {
                 final transcript = part['text'] as String;
-                logger.i("Gemini Transcript: $transcript");
+                logger.i("Gemini Spoken Text Part: $transcript");
                 onTranscriptUpdate?.call(transcript);
               }
               if (part['inlineData'] != null &&
