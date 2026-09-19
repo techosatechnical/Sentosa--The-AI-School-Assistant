@@ -119,16 +119,6 @@ graph TD
 
 ---
 
-## 🏫 About Sentosa International Academy
-
-- **Location:** Ground Floor Reception Kiosk & Lobby
-- **Principal:** Dr. Elena Vance
-- **Timings:** Monday – Friday, 8:00 AM – 3:30 PM
-- **Grades:** Pre-Kindergarten through Grade 12
-- **Admissions Office:** Ground Floor, Admin Wing (Mr. Arthur Pendleton)
-
----
-
 <div align="center">
 
 Licensed by **Techosa Robotics**
