@@ -101,14 +101,12 @@ class _HomeScreenState extends State<HomeScreen>
       if (mounted) {
         setState(() {
           _currentModelTurn += text;
-          var t = _currentModelTurn.replaceAll(RegExp(r'<think>[\s\S]*?</think>'), '');
-          t = t.replaceAll(RegExp(r'\[.*?\]'), '');
-          t = t.replaceAll('*', '').trim();
-          if (t.isNotEmpty) {
+          final cleaned = _cleanAIResponse(_currentModelTurn);
+          if (cleaned.isNotEmpty) {
             if (_messages.isNotEmpty && _messages.last['role'] == 'model') {
-              _messages.last['text'] = t;
+              _messages.last['text'] = cleaned;
             } else {
-              _messages.add({'role': 'model', 'text': t});
+              _messages.add({'role': 'model', 'text': cleaned});
             }
           }
         });
@@ -250,6 +248,22 @@ class _HomeScreenState extends State<HomeScreen>
     _wakeWordService.dispose();
     _geminiService.dispose();
     return AppExitResponse.exit;
+  }
+
+  String _cleanAIResponse(String input) {
+    var text = input;
+    // Strip <think>...</think> and unclosed <think>... during live streaming
+    text = text.replaceAll(RegExp(r'<think>[\s\S]*?(?:</think>|$)', caseSensitive: false), '');
+    // Strip <thought>...</thought> and unclosed <thought>...
+    text = text.replaceAll(RegExp(r'<thought>[\s\S]*?(?:</thought>|$)', caseSensitive: false), '');
+    // Strip Thought: ... up to next paragraph or end
+    text = text.replaceAll(RegExp(r'^\s*Thought:[\s\S]*?(?:\n\n|$)', caseSensitive: false), '');
+    // Strip bracketed instructions like [whispers] or [speaks Malayalam]
+    text = text.replaceAll(RegExp(r'\[.*?\]'), '');
+    // Strip markdown formatting symbols
+    text = text.replaceAll('*', '');
+    text = text.replaceAll('#', '');
+    return text.trim();
   }
 
   Future<void> _startListening({bool fromWakeWord = false}) async {
@@ -1034,15 +1048,24 @@ class _HomeScreenState extends State<HomeScreen>
 
 
   Widget _buildSpeechBubble() {
+    final aiResponse = _getLatestAIResponse();
+    final hasResponse = aiResponse.isNotEmpty;
     final currentGreeting = _greetings[_greetingIndex];
 
     return GestureDetector(
-      onTap: _triggerRobotReaction,
+      onTap: () {
+        if (hasResponse) {
+          setState(() {
+            _messages.clear();
+            _currentModelTurn = "";
+          });
+        }
+        _triggerRobotReaction();
+      },
       child: Stack(
         alignment: Alignment.topCenter,
         clipBehavior: Clip.none,
         children: [
-
           Positioned(
             top: -6,
             child: Transform.rotate(
@@ -1060,11 +1083,9 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
           ),
-
-
           Container(
             width: double.infinity,
-            constraints: const BoxConstraints(maxWidth: 380),
+            constraints: const BoxConstraints(maxWidth: 420),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.96),
@@ -1077,51 +1098,96 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ],
               border: Border.all(
-                color: const Color(0xFFE0F2FE),
+                color: hasResponse
+                    ? (_isSpeaking
+                        ? const Color(0xFFA855F7).withValues(alpha: 0.4)
+                        : const Color(0xFF38BDF8).withValues(alpha: 0.4))
+                    : const Color(0xFFE0F2FE),
                 width: 1.5,
               ),
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      currentGreeting['hi'] ?? 'Hi!',
-                      style: const TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF0F2942),
-                        letterSpacing: -0.6,
+                if (!hasResponse) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        currentGreeting['hi'] ?? 'Hi!',
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F2942),
+                          letterSpacing: -0.6,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      AnimatedBuilder(
+                        animation: _waveController,
+                        builder: (context, child) {
+                          final waveAngle = math.sin(_waveController.value * math.pi * 2) * 0.25;
+                          return Transform.rotate(
+                            angle: waveAngle,
+                            child: const Text(
+                              "👋",
+                              style: TextStyle(fontSize: 24),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    currentGreeting['text'] ?? '',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF334155),
+                      height: 1.35,
+                    ),
+                  ),
+                ] else ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _isSpeaking ? "Sentosa Speaking..." : "Sentosa",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: _isSpeaking ? const Color(0xFFA855F7) : const Color(0xFF0F2942),
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 18,
+                        color: _isSpeaking ? const Color(0xFFA855F7) : const Color(0xFF38BDF8),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 160),
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Text(
+                        aiResponse,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F2942),
+                          height: 1.4,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    AnimatedBuilder(
-                      animation: _waveController,
-                      builder: (context, child) {
-                        final waveAngle = math.sin(_waveController.value * math.pi * 2) * 0.25;
-                        return Transform.rotate(
-                          angle: waveAngle,
-                          child: const Text(
-                            "👋",
-                            style: TextStyle(fontSize: 24),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  currentGreeting['text'] ?? '',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF334155),
-                    height: 1.35,
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -1129,6 +1195,17 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
+
+  String _getLatestAIResponse() {
+    if (_messages.isEmpty) return "";
+    for (var i = _messages.length - 1; i >= 0; i--) {
+      if (_messages[i]['role'] == 'model') {
+        return _messages[i]['text'] ?? "";
+      }
+    }
+    return "";
+  }
+
   Widget _buildSentosaMicSection() {
     final activeColor = _isSpeaking
         ? const Color(0xFFA855F7)
@@ -1209,9 +1286,6 @@ class _HomeScreenState extends State<HomeScreen>
             activeColor: activeColor,
             onTap: _toggleListening,
           ),
-          const SizedBox(height: 24),
-          if (_messages.isNotEmpty)
-            TranscriptView(messages: _messages),
         ],
       ),
     );

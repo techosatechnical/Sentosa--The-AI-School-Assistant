@@ -24,6 +24,7 @@ class GeminiService {
   int _audioChunkCount = 0;
   Timer? _inactivityTimer;
   Timer? _gracePeriodTimer;
+  Timer? _audioIdleFlushTimer;
 
   ConversationState _conversationState = ConversationState.standby;
 
@@ -156,6 +157,7 @@ class GeminiService {
   void interrupt() {
     if (_isPlaying || _conversationState == ConversationState.speaking || _isModelResponding) {
       logger.i("Intentional user interrupt triggered via voice command. Stopping speech immediately.");
+      _audioIdleFlushTimer?.cancel();
       _gracePeriodTimer?.cancel();
       _stopPlayback();
       _isModelResponding = false;
@@ -209,8 +211,21 @@ class GeminiService {
                   "Received audio chunk (${pcmChunk.length} bytes, total turn buffer: ${_turnBuffer.length} bytes)",
                 );
 
-                // If turn is long, buffer a healthy 3.0s cushion before starting playback
-                if (_turnBuffer.length >= GeminiConstants.audioBufferThreshold) {
+                // Reset idle flush timer: if stream pauses for 750ms, flush to prevent stalling
+                _audioIdleFlushTimer?.cancel();
+                _audioIdleFlushTimer = Timer(const Duration(milliseconds: 750), () {
+                  if (_turnBuffer.isNotEmpty && _isModelResponding) {
+                    logger.i(
+                      "Audio stream idle (750ms). Flushing ${_turnBuffer.length} bytes for playback.",
+                    );
+                    _isModelResponding = false;
+                    _enqueueBufferedAudio();
+                  }
+                });
+
+                // Safety flush for extremely long responses (> 10s of audio) to avoid excessive wait
+                if (_turnBuffer.length >= 480000) {
+                  _audioIdleFlushTimer?.cancel();
                   _enqueueBufferedAudio();
                 }
               }
@@ -218,8 +233,9 @@ class GeminiService {
           }
         }
 
-        // When turnComplete arrives, flush all remaining audio immediately
+        // When turnComplete arrives, flush all remaining audio immediately as a single complete WAV file
         if (serverContent['turnComplete'] == true) {
+          _audioIdleFlushTimer?.cancel();
           logger.i(
             "Gemini turnComplete received. Total turn buffer: ${_turnBuffer.length} bytes",
           );
@@ -287,6 +303,7 @@ class GeminiService {
   }
 
   Future<void> _stopPlayback() async {
+    _audioIdleFlushTimer?.cancel();
     _gracePeriodTimer?.cancel();
     _turnBuffer.clear();
     _playbackQueue.clear();
@@ -319,9 +336,6 @@ class GeminiService {
       _audioChunkCount = 0;
       _audioStreamSubscription = recordStream.listen((data) {
         if (_channel != null) {
-          // STRICT ACOUSTIC & ECHO LOCK:
-          // While Gemini is generating, playing audio, or during the post-speech acoustic grace period,
-          // do NOT stream microphone audio to Gemini sink.
           if (_isMicrophoneLocked ||
               _isPlaying ||
               _isModelResponding ||
@@ -385,6 +399,7 @@ class GeminiService {
   }
 
   void dispose() {
+    _audioIdleFlushTimer?.cancel();
     _inactivityTimer?.cancel();
     _gracePeriodTimer?.cancel();
     disconnect();
