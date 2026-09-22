@@ -6,6 +6,7 @@ import 'package:sentosa/services/services.dart';
 import 'package:sentosa/helpers/enums/enums.dart';
 import 'package:sentosa/widgets/widgets.dart';
 import 'package:sentosa/widgets/widget.admissiondesk.dart';
+import 'package:sentosa/screens/screen.pin_entry.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1605,7 +1606,12 @@ class _HomeScreenState extends State<HomeScreen>
           Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PinEntryScreen()),
+                );
+              },
               borderRadius: BorderRadius.circular(16),
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
