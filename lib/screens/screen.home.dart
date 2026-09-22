@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:sentosa/services/services.dart';
 import 'package:sentosa/helpers/enums/enums.dart';
 import 'package:sentosa/widgets/widgets.dart';
+import 'package:sentosa/widgets/widget.admissiondesk.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,13 +16,12 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-
   late Timer _clockTimer;
   DateTime _currentTime = DateTime.now();
 
   final GeminiService _geminiService = GeminiService();
   final WakeWordService _wakeWordService = WakeWordService();
-  
+
   bool _isMicModeActive = false;
   bool _isListening = false;
   bool _isSpeaking = false;
@@ -40,15 +40,15 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _blinkController;
   late Animation<double> _blinkAnimation;
 
-
-  final ValueNotifier<Offset> _gazeNotifier = ValueNotifier<Offset>(Offset.zero);
+  final ValueNotifier<Offset> _gazeNotifier = ValueNotifier<Offset>(
+    Offset.zero,
+  );
   bool _isTrackingPointer = false;
   bool _isReacting = false;
 
   Timer? _idleTimer;
   Timer? _roamTimer;
   Timer? _blinkCadenceTimer;
-
 
   final List<Map<String, dynamic>> _roamTargets = [
     {'x': 0.0, 'y': 0.0, 'dwell': 2600, 'blink': false},
@@ -63,7 +63,6 @@ class _HomeScreenState extends State<HomeScreen>
     {'x': 0.0, 'y': 3.0, 'dwell': 1700, 'blink': true},
   ];
   int _roamIndex = 0;
-
 
   final List<Map<String, String>> _greetings = [
     {
@@ -84,7 +83,6 @@ class _HomeScreenState extends State<HomeScreen>
     },
   ];
   int _greetingIndex = 0;
-
 
   final GlobalKey _visorKey = GlobalKey();
 
@@ -147,8 +145,8 @@ class _HomeScreenState extends State<HomeScreen>
     };
 
     _wakeWordService.onInterruptDetected = (phrase) {
-      // Intentionally ignored. Voice-based interruption disabled 
-      // due to noisy school environment false-positives. 
+      // Intentionally ignored. Voice-based interruption disabled
+      // due to noisy school environment false-positives.
       // Users must tap the Mic button to interrupt.
     };
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -159,24 +157,20 @@ class _HomeScreenState extends State<HomeScreen>
       }
     });
 
-
     _headFloatController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 5000),
     )..repeat(reverse: true);
-
 
     _rayPulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2200),
     )..repeat(reverse: true);
 
-
     _waveController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2400),
     )..repeat(reverse: true);
-
 
     _eyeGlowController = AnimationController(
       vsync: this,
@@ -187,12 +181,10 @@ class _HomeScreenState extends State<HomeScreen>
       curve: Curves.easeInOut,
     );
 
-
     _nodController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 650),
     );
-
 
     _squintController = AnimationController(
       vsync: this,
@@ -205,7 +197,6 @@ class _HomeScreenState extends State<HomeScreen>
       reverseCurve: Curves.easeInOutCubic,
     );
 
-
     _blinkController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 120),
@@ -216,7 +207,6 @@ class _HomeScreenState extends State<HomeScreen>
       curve: Curves.easeInOut,
       reverseCurve: Curves.easeInOut,
     );
-
 
     _scheduleNextBlink();
     _startAutonomousRoam();
@@ -253,11 +243,20 @@ class _HomeScreenState extends State<HomeScreen>
   String _cleanAIResponse(String input) {
     var text = input;
     // Strip <think>...</think> and unclosed <think>... during live streaming
-    text = text.replaceAll(RegExp(r'<think>[\s\S]*?(?:</think>|$)', caseSensitive: false), '');
+    text = text.replaceAll(
+      RegExp(r'<think>[\s\S]*?(?:</think>|$)', caseSensitive: false),
+      '',
+    );
     // Strip <thought>...</thought> and unclosed <thought>...
-    text = text.replaceAll(RegExp(r'<thought>[\s\S]*?(?:</thought>|$)', caseSensitive: false), '');
+    text = text.replaceAll(
+      RegExp(r'<thought>[\s\S]*?(?:</thought>|$)', caseSensitive: false),
+      '',
+    );
     // Strip Thought: ... up to next paragraph or end
-    text = text.replaceAll(RegExp(r'^\s*Thought:[\s\S]*?(?:\n\n|$)', caseSensitive: false), '');
+    text = text.replaceAll(
+      RegExp(r'^\s*Thought:[\s\S]*?(?:\n\n|$)', caseSensitive: false),
+      '',
+    );
     // Strip bracketed instructions like [whispers] or [speaks Malayalam]
     text = text.replaceAll(RegExp(r'\[.*?\]'), '');
     // Strip markdown formatting symbols
@@ -272,7 +271,9 @@ class _HomeScreenState extends State<HomeScreen>
       _isListening = true;
       _messages.clear();
       _currentModelTurn = "";
-      _statusText = fromWakeWord ? "Awakened! Connecting to Gemini Live..." : "Connecting to Gemini Live...";
+      _statusText = fromWakeWord
+          ? "Awakened! Connecting to Gemini Live..."
+          : "Connecting to Gemini Live...";
     });
     try {
       await _geminiService.connect();
@@ -303,14 +304,11 @@ class _HomeScreenState extends State<HomeScreen>
     if (_isReacting || !mounted || _blinkController.isAnimating) return;
 
     try {
-
       await _blinkController.forward();
       if (!mounted) return;
 
-
       await _blinkController.reverse();
       if (!mounted) return;
-
 
       if (doubleBlink && math.Random().nextDouble() > 0.45) {
         await Future.delayed(const Duration(milliseconds: 120));
@@ -319,9 +317,7 @@ class _HomeScreenState extends State<HomeScreen>
         if (!mounted) return;
         await _blinkController.reverse();
       }
-    } catch (_) {
-
-    }
+    } catch (_) {}
   }
 
   void _scheduleNextBlink() {
@@ -340,11 +336,9 @@ class _HomeScreenState extends State<HomeScreen>
     final target = _roamTargets[_roamIndex];
     _roamIndex = (_roamIndex + 1) % _roamTargets.length;
 
-
     if (target['blink'] == true && math.Random().nextDouble() > 0.35) {
       _triggerBlink();
     }
-
 
     _gazeNotifier.value = Offset(
       (target['x'] as num).toDouble(),
@@ -363,7 +357,8 @@ class _HomeScreenState extends State<HomeScreen>
     _roamTimer?.cancel();
     _idleTimer?.cancel();
 
-    final renderBox = _visorKey.currentContext?.findRenderObject() as RenderBox?;
+    final renderBox =
+        _visorKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox != null) {
       final visorCenter = renderBox.localToGlobal(
         Offset(renderBox.size.width / 2, renderBox.size.height / 2),
@@ -371,14 +366,11 @@ class _HomeScreenState extends State<HomeScreen>
       final dx = globalPos.dx - visorCenter.dx;
       final dy = globalPos.dy - visorCenter.dy;
 
-
       final targetX = (dx / 26.0).clamp(-14.0, 14.0);
       final targetY = (dy / 24.0).clamp(-10.0, 10.0);
 
-
       _gazeNotifier.value = Offset(targetX, targetY);
     }
-
 
     _idleTimer = Timer(const Duration(milliseconds: 3000), () {
       if (mounted) {
@@ -400,18 +392,14 @@ class _HomeScreenState extends State<HomeScreen>
     _roamTimer?.cancel();
     _idleTimer?.cancel();
 
-
     _gazeNotifier.value = const Offset(0.0, -3.0);
-
 
     setState(() {
       _greetingIndex = (_greetingIndex + 1) % _greetings.length;
     });
 
-
     _nodController.forward(from: 0.0);
     _squintController.forward();
-
 
     Future.delayed(const Duration(milliseconds: 1400), () {
       if (mounted) {
@@ -470,7 +458,6 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               child: Stack(
                 children: [
-
                   Positioned(
                     top: -50,
                     left: -50,
@@ -508,7 +495,6 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
 
-
                   SafeArea(
                     bottom: false,
                     child: Column(
@@ -518,7 +504,9 @@ class _HomeScreenState extends State<HomeScreen>
                           child: SingleChildScrollView(
                             physics: const ClampingScrollPhysics(),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
                               child: Column(
                                 children: [
                                   const SizedBox(height: 4),
@@ -529,13 +517,16 @@ class _HomeScreenState extends State<HomeScreen>
                                   AnimatedSwitcher(
                                     duration: const Duration(milliseconds: 500),
                                     transitionBuilder: (child, animation) {
-                                      final offsetAnimation = Tween<Offset>(
-                                        begin: const Offset(1.0, 0.0),
-                                        end: Offset.zero,
-                                      ).animate(CurvedAnimation(
-                                        parent: animation,
-                                        curve: Curves.easeInOutQuart,
-                                      ));
+                                      final offsetAnimation =
+                                          Tween<Offset>(
+                                            begin: const Offset(1.0, 0.0),
+                                            end: Offset.zero,
+                                          ).animate(
+                                            CurvedAnimation(
+                                              parent: animation,
+                                              curve: Curves.easeInOutQuart,
+                                            ),
+                                          );
                                       return SlideTransition(
                                         position: offsetAnimation,
                                         child: FadeTransition(
@@ -574,7 +565,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-
   Widget _buildTopHeader() {
     final hour = _currentTime.hour % 12 == 0 ? 12 : _currentTime.hour % 12;
     final minute = _currentTime.minute.toString().padLeft(2, '0');
@@ -583,8 +573,18 @@ class _HomeScreenState extends State<HomeScreen>
 
     final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final dateStr =
         "${weekdays[_currentTime.weekday - 1]}, ${_currentTime.day} ${months[_currentTime.month - 1]} ${_currentTime.year}";
@@ -594,15 +594,12 @@ class _HomeScreenState extends State<HomeScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-
           Row(
             children: [
               SizedBox(
                 width: 40,
                 height: 40,
-                child: CustomPaint(
-                  painter: SentosaLogoPainter(),
-                ),
+                child: CustomPaint(painter: SentosaLogoPainter()),
               ),
               const SizedBox(width: 14),
               Column(
@@ -632,7 +629,6 @@ class _HomeScreenState extends State<HomeScreen>
             ],
           ),
 
-
           Row(
             children: [
               Column(
@@ -660,15 +656,13 @@ class _HomeScreenState extends State<HomeScreen>
                 ],
               ),
               const SizedBox(width: 16),
-              Container(
-                width: 1.5,
-                height: 28,
-                color: const Color(0xFFCBD5E1),
-              ),
+              Container(width: 1.5, height: 28, color: const Color(0xFFCBD5E1)),
               const SizedBox(width: 16),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(16),
@@ -725,7 +719,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-
   Widget _buildRobotHeadHeroSection() {
     return AnimatedBuilder(
       animation: Listenable.merge([
@@ -734,7 +727,6 @@ class _HomeScreenState extends State<HomeScreen>
         _nodController,
       ]),
       builder: (context, child) {
-
         final floatY = math.sin(_headFloatController.value * math.pi) * -5.0;
 
         final nodY = math.sin(_nodController.value * math.pi * 2) * 5.0;
@@ -746,18 +738,9 @@ class _HomeScreenState extends State<HomeScreen>
             alignment: Alignment.center,
             clipBehavior: Clip.none,
             children: [
+              Positioned(left: 10, child: _buildRays(isLeft: true)),
 
-              Positioned(
-                left: 10,
-                child: _buildRays(isLeft: true),
-              ),
-
-
-              Positioned(
-                right: 10,
-                child: _buildRays(isLeft: false),
-              ),
-
+              Positioned(right: 10, child: _buildRays(isLeft: false)),
 
               GestureDetector(
                 onTap: _triggerRobotReaction,
@@ -821,7 +804,6 @@ class _HomeScreenState extends State<HomeScreen>
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-
                         Positioned(
                           top: 0,
                           left: 0,
@@ -845,7 +827,6 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ),
 
-
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -865,7 +846,6 @@ class _HomeScreenState extends State<HomeScreen>
       },
     );
   }
-
 
   Widget _buildRays({required bool isLeft}) {
     final pulseScale = 1.0 + (_rayPulseController.value * 0.12);
@@ -902,16 +882,11 @@ class _HomeScreenState extends State<HomeScreen>
         color: const Color(0xFF4096FE),
         borderRadius: BorderRadius.circular(10),
         boxShadow: const [
-          BoxShadow(
-            color: Color(0xBF4096FE),
-            blurRadius: 10,
-            spreadRadius: 1,
-          ),
+          BoxShadow(color: Color(0xBF4096FE), blurRadius: 10, spreadRadius: 1),
         ],
       ),
     );
   }
-
 
   Widget _buildExpressiveEye() {
     return RepaintBoundary(
@@ -920,7 +895,12 @@ class _HomeScreenState extends State<HomeScreen>
         builder: (context, gaze, _) {
           return AnimatedContainer(
             duration: const Duration(milliseconds: 280),
-            curve: const Cubic(0.25, 1.0, 0.35, 1.0), // Exact Stitch saccade curve
+            curve: const Cubic(
+              0.25,
+              1.0,
+              0.35,
+              1.0,
+            ), // Exact Stitch saccade curve
             transform: Matrix4.translationValues(gaze.dx, gaze.dy, 0),
             child: AnimatedBuilder(
               animation: Listenable.merge([
@@ -933,33 +913,32 @@ class _HomeScreenState extends State<HomeScreen>
                 final tSquint = _squintAnimation.value;
                 final tGlow = _eyeGlowAnimation.value;
 
-
-
-
-                final scaleY =
-                    (1.0 - (0.94 * tBlink) - (0.78 * tSquint)).clamp(0.06, 1.2);
-                final scaleX =
-                    (1.0 + (0.08 * tBlink) + (0.04 * tSquint)).clamp(0.8, 1.2);
+                final scaleY = (1.0 - (0.94 * tBlink) - (0.78 * tSquint)).clamp(
+                  0.06,
+                  1.2,
+                );
+                final scaleX = (1.0 + (0.08 * tBlink) + (0.04 * tSquint)).clamp(
+                  0.8,
+                  1.2,
+                );
                 final translateY = 12.0 * tSquint;
 
-
-
-
-
                 final blinkRadius = 26.0 - (22.0 * tBlink);
-                final topRadius =
-                    (blinkRadius + (14.0 * tSquint)).clamp(4.0, 40.0);
-                final bottomRadius =
-                    (blinkRadius - (16.0 * tSquint)).clamp(4.0, 26.0);
+                final topRadius = (blinkRadius + (14.0 * tSquint)).clamp(
+                  4.0,
+                  40.0,
+                );
+                final bottomRadius = (blinkRadius - (16.0 * tSquint)).clamp(
+                  4.0,
+                  26.0,
+                );
                 final borderRadius = BorderRadius.vertical(
                   top: Radius.circular(topRadius),
                   bottom: Radius.circular(bottomRadius),
                 );
 
-
-                final specularOpacity =
-                    ((1.0 - tBlink) * (1.0 - tSquint)).clamp(0.0, 1.0);
-
+                final specularOpacity = ((1.0 - tBlink) * (1.0 - tSquint))
+                    .clamp(0.0, 1.0);
 
                 final glowSpread = 2.0 + (tGlow * 3.0);
                 final glowBlur = 16.0 + (tGlow * 12.0);
@@ -971,70 +950,72 @@ class _HomeScreenState extends State<HomeScreen>
                     scaleY: scaleY,
                     alignment: Alignment.center,
                     child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF020914),
-                      borderRadius: borderRadius,
-                      border: Border.all(
-                        color: const Color(0xFF38BDF8),
-                        width: tSquint > 0.4 ? 3.5 : 5.0,
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF020914),
+                        borderRadius: borderRadius,
+                        border: Border.all(
+                          color: const Color(0xFF38BDF8),
+                          width: tSquint > 0.4 ? 3.5 : 5.0,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF38BDF8,
+                            ).withValues(alpha: 0.85),
+                            blurRadius: glowBlur,
+                            spreadRadius: glowSpread,
+                          ),
+                          BoxShadow(
+                            color: const Color(
+                              0xFF0EA5E9,
+                            ).withValues(alpha: 0.5),
+                            blurRadius: glowBlur * 1.6,
+                          ),
+                        ],
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF38BDF8).withValues(alpha: 0.85),
-                          blurRadius: glowBlur,
-                          spreadRadius: glowSpread,
-                        ),
-                        BoxShadow(
-                          color: const Color(0xFF0EA5E9).withValues(alpha: 0.5),
-                          blurRadius: glowBlur * 1.6,
-                        ),
-                      ],
-                    ),
-                    child: Stack(
-                      children: [
-
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Opacity(
-                            opacity: specularOpacity,
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.white,
-                                    blurRadius: 8,
-                                  ),
-                                ],
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Opacity(
+                              opacity: specularOpacity,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(4),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.white,
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
 
-
-                        Positioned(
-                          bottom: 8,
-                          left: 8,
-                          child: Opacity(
-                            opacity: specularOpacity * 0.5,
-                            child: Container(
-                              width: 4,
-                              height: 4,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Color(0xFFBAE6FD),
+                          Positioned(
+                            bottom: 8,
+                            left: 8,
+                            child: Opacity(
+                              opacity: specularOpacity * 0.5,
+                              child: Container(
+                                width: 4,
+                                height: 4,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFFBAE6FD),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -1045,7 +1026,6 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
-
 
   Widget _buildSpeechBubble() {
     final aiResponse = _getLatestAIResponse();
@@ -1100,8 +1080,8 @@ class _HomeScreenState extends State<HomeScreen>
               border: Border.all(
                 color: hasResponse
                     ? (_isSpeaking
-                        ? const Color(0xFFA855F7).withValues(alpha: 0.4)
-                        : const Color(0xFF38BDF8).withValues(alpha: 0.4))
+                          ? const Color(0xFFA855F7).withValues(alpha: 0.4)
+                          : const Color(0xFF38BDF8).withValues(alpha: 0.4))
                     : const Color(0xFFE0F2FE),
                 width: 1.5,
               ),
@@ -1126,7 +1106,9 @@ class _HomeScreenState extends State<HomeScreen>
                       AnimatedBuilder(
                         animation: _waveController,
                         builder: (context, child) {
-                          final waveAngle = math.sin(_waveController.value * math.pi * 2) * 0.25;
+                          final waveAngle =
+                              math.sin(_waveController.value * math.pi * 2) *
+                              0.25;
                           return Transform.rotate(
                             angle: waveAngle,
                             child: const Text(
@@ -1158,7 +1140,9 @@ class _HomeScreenState extends State<HomeScreen>
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
-                          color: _isSpeaking ? const Color(0xFFA855F7) : const Color(0xFF0F2942),
+                          color: _isSpeaking
+                              ? const Color(0xFFA855F7)
+                              : const Color(0xFF0F2942),
                           letterSpacing: -0.4,
                         ),
                       ),
@@ -1166,7 +1150,9 @@ class _HomeScreenState extends State<HomeScreen>
                       Icon(
                         Icons.auto_awesome,
                         size: 18,
-                        color: _isSpeaking ? const Color(0xFFA855F7) : const Color(0xFF38BDF8),
+                        color: _isSpeaking
+                            ? const Color(0xFFA855F7)
+                            : const Color(0xFF38BDF8),
                       ),
                     ],
                   ),
@@ -1210,7 +1196,7 @@ class _HomeScreenState extends State<HomeScreen>
     final activeColor = _isSpeaking
         ? const Color(0xFFA855F7)
         : (_isListening ? const Color(0xFF38BDF8) : const Color(0xFF10B981));
-        
+
     return Container(
       key: const ValueKey('MicSection'),
       constraints: const BoxConstraints(minHeight: 400),
@@ -1220,7 +1206,11 @@ class _HomeScreenState extends State<HomeScreen>
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.keyboard_backspace_rounded, color: Color(0xFF0F2942), size: 28),
+                icon: const Icon(
+                  Icons.keyboard_backspace_rounded,
+                  color: Color(0xFF0F2942),
+                  size: 28,
+                ),
                 onPressed: () async {
                   if (_isListening) {
                     await _toggleListening();
@@ -1279,7 +1269,7 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 24),
           MicButton(
             size: 200.0,
-            pulseAnimation: _rayPulseController, 
+            pulseAnimation: _rayPulseController,
             waveAnimation: _waveController,
             isListening: _isListening,
             isSpeaking: _isSpeaking,
@@ -1295,15 +1285,10 @@ class _HomeScreenState extends State<HomeScreen>
     return const Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-
         SizedBox(
           width: 30,
           height: 30,
-          child: Icon(
-            Icons.auto_awesome,
-            size: 28,
-            color: Color(0xFF38BDF8),
-          ),
+          child: Icon(Icons.auto_awesome, size: 28, color: Color(0xFF38BDF8)),
         ),
         SizedBox(width: 12),
         Column(
@@ -1332,7 +1317,6 @@ class _HomeScreenState extends State<HomeScreen>
       ],
     );
   }
-
 
   Widget _buildQuickActionsGrid() {
     final cards = [
@@ -1402,7 +1386,8 @@ class _HomeScreenState extends State<HomeScreen>
       builder: (context, constraints) {
         final crossAxisCount = constraints.maxWidth >= 768 ? 4 : 2;
         final totalSpacing = 16.0 * (crossAxisCount - 1);
-        final itemWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
+        final itemWidth =
+            (constraints.maxWidth - totalSpacing) / crossAxisCount;
         const desiredItemHeight = 252.0;
         final childAspectRatio = itemWidth / desiredItemHeight;
 
@@ -1465,6 +1450,11 @@ class _HomeScreenState extends State<HomeScreen>
             setState(() {
               _isMicModeActive = true;
             });
+          } else if (card.title == "Mini Admission\nAssistant") {
+            showDialog(
+              context: context,
+              builder: (_) => const AdmissionAssistantDialog(),
+            );
           } else {
             _triggerRobotReaction();
           }
@@ -1476,10 +1466,7 @@ class _HomeScreenState extends State<HomeScreen>
           decoration: BoxDecoration(
             color: card.bgColor,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: card.borderColor,
-              width: 1.5,
-            ),
+            border: Border.all(color: card.borderColor, width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF0F2942).withValues(alpha: 0.04),
@@ -1490,13 +1477,11 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           child: Stack(
             children: [
-
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 18, 14, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-
                     SizedBox(
                       height: 72,
                       child: Center(
@@ -1532,7 +1517,6 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
 
-
               Positioned(
                 right: 14,
                 bottom: 14,
@@ -1564,7 +1548,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-
   Widget _buildPersistentBottomBar() {
     return Container(
       width: double.infinity,
@@ -1573,10 +1556,7 @@ class _HomeScreenState extends State<HomeScreen>
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFFE8F3FD),
-            Color(0xFFDBEDFD),
-          ],
+          colors: [Color(0xFFE8F3FD), Color(0xFFDBEDFD)],
         ),
         border: Border(
           top: BorderSide(
@@ -1588,14 +1568,9 @@ class _HomeScreenState extends State<HomeScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-
           Row(
             children: const [
-              Icon(
-                Icons.school_rounded,
-                size: 26,
-                color: Color(0xFF1E40AF),
-              ),
+              Icon(Icons.school_rounded, size: 26, color: Color(0xFF1E40AF)),
               SizedBox(width: 12),
               Text(
                 "A Smarter School",
@@ -1626,7 +1601,6 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
-
 
           Material(
             color: Colors.transparent,
@@ -1667,7 +1641,3 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 }
-
-
-
-
