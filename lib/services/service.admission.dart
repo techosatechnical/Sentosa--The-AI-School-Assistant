@@ -71,6 +71,40 @@ class AdmissionDbService {
     return await db.query('admissions', orderBy: 'createdAt DESC');
   }
 
+  Future<int> deleteAdmission(int id) async {
+    return await deleteAdmissions([id]);
+  }
+
+  Future<int> deleteAdmissions(List<int> ids) async {
+    if (ids.isEmpty) return 0;
+    final db = await database;
+    try {
+      final placeholders = List.filled(ids.length, '?').join(',');
+      final records = await db.query(
+        'admissions',
+        columns: ['photoPath'],
+        where: 'id IN ($placeholders)',
+        whereArgs: ids,
+      );
+      for (final row in records) {
+        final path = row['photoPath'] as String?;
+        if (path != null && path.isNotEmpty) {
+          final file = File(path);
+          if (await file.exists()) {
+            await file.delete();
+          }
+        }
+      }
+    } catch (_) {}
+
+    final placeholders = List.filled(ids.length, '?').join(',');
+    return await db.delete(
+      'admissions',
+      where: 'id IN ($placeholders)',
+      whereArgs: ids,
+    );
+  }
+
   Future<int> clearAllAdmissions() async {
     final db = await database;
     return await db.delete('admissions');

@@ -109,24 +109,6 @@ class AccessibilityMenuScreen extends StatelessWidget {
     final cards = [
       (
         data: ActionCardData(
-          title: "Add Event",
-          subtitle: "See upcoming events,\nholidays and activities.",
-          bgColor: const Color(0xFFFFF6EB),
-          hoverColor: const Color(0xFFFEEED6),
-          borderColor: const Color(0xFFFEE8CC),
-          titleColor: const Color(0xFF0F2942),
-          arrowColor: const Color(0xFFF59E0B),
-          accentDashColor: const Color(0xFFFDE68A),
-        ),
-        painter: EventsGraphicPainter(const Color(0xFFFDE68A)),
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Add Event action selected')),
-          );
-        },
-      ),
-      (
-        data: ActionCardData(
           title: "Admission\nDetails",
           subtitle: "Quick admission process\nwith photo & details.",
           bgColor: const Color(0xFFE6F9F9),

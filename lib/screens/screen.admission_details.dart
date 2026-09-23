@@ -13,8 +13,12 @@ class AdmissionDetailsScreen extends StatefulWidget {
 class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
   List<Map<String, dynamic>> _allAdmissions = [];
   List<Map<String, dynamic>> _filteredAdmissions = [];
+  final Set<int> _selectedIds = {};
 
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _verticalScrollController = ScrollController();
+  final ScrollController _horizontalScrollController = ScrollController();
+
   String _searchQuery = '';
   String? _selectedClass;
   String? _selectedGender;
@@ -30,6 +34,8 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _verticalScrollController.dispose();
+    _horizontalScrollController.dispose();
     super.dispose();
   }
 
@@ -40,6 +46,11 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
     setState(() {
       _allAdmissions = data;
       _isLoading = false;
+      final validIds = data
+          .map((e) => e['id'] as int?)
+          .whereType<int>()
+          .toSet();
+      _selectedIds.retainAll(validIds);
       _applyFilters();
     });
   }
@@ -82,6 +93,173 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
       _selectedGender = null;
       _applyFilters();
     });
+  }
+
+  Future<void> _confirmDeleteSelected() async {
+    if (_selectedIds.isEmpty) return;
+    final count = _selectedIds.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.delete_outline,
+                color: Color(0xFFDC2626),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Delete Records',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete $count selected admission record${count > 1 ? 's' : ''}? This action cannot be undone.',
+          style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            style: OutlinedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text('Delete $count Record${count > 1 ? 's' : ''}'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final idsToDelete = _selectedIds.toList();
+      await AdmissionDbService().deleteAdmissions(idsToDelete);
+      _selectedIds.clear();
+      await _loadData();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(
+                Icons.check_circle_outline,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Deleted $count record${count > 1 ? 's' : ''} successfully.',
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmDeleteSingle(int id, String studentName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.delete_outline,
+                color: Color(0xFFDC2626),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Delete Record',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete the admission record for "$studentName"? This action cannot be undone.',
+          style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            style: OutlinedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await AdmissionDbService().deleteAdmission(id);
+      _selectedIds.remove(id);
+      await _loadData();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(
+                Icons.check_circle_outline,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text('Deleted record for "$studentName".'),
+            ],
+          ),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _exportCsv() {
@@ -140,6 +318,7 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
     final name = student['name']?.toString() ?? 'Unknown Student';
     final initials = _getInitials(name);
     final id = student['id']?.toString() ?? '-';
+    final idNum = student['id'] as int? ?? int.tryParse(id) ?? 0;
     final className = student['className']?.toString() ?? '-';
     final gender = student['gender']?.toString() ?? '-';
     final dob = student['dob']?.toString() ?? '-';
@@ -291,23 +470,54 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _confirmDeleteSingle(idNum, name);
+                      },
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        size: 16,
+                        color: Color(0xFFDC2626),
+                      ),
+                      label: const Text(
+                        'Delete',
+                        style: TextStyle(
+                          color: Color(0xFFDC2626),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFFECACA)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  child: const Text(
-                    'Close',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'Close',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
@@ -361,7 +571,7 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
 
   Widget _buildScreenNavHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -423,10 +633,36 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
           ),
           Row(
             children: [
+              if (_selectedIds.isNotEmpty) ...[
+                ElevatedButton.icon(
+                  onPressed: _confirmDeleteSelected,
+                  icon: const Icon(Icons.delete_outline, size: 14),
+                  label: Text(
+                    'Delete (${_selectedIds.length})',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    minimumSize: Size.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               OutlinedButton.icon(
                 onPressed: _exportCsv,
-                icon: const Icon(Icons.download_rounded, size: 14),
-                label: const Text('CSV', style: TextStyle(fontSize: 11)),
+                icon: const Icon(Icons.copy, size: 14),
+                label: const Text('COPY', style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF475569),
                   backgroundColor: Colors.white,
@@ -453,10 +689,10 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
     List<String> genderOptions,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white),
         boxShadow: [
           BoxShadow(
@@ -536,18 +772,18 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
               _applyFilters();
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // Dropdowns Row
           Row(
             children: [
               Expanded(
                 child: Container(
-                  height: 42,
+                  height: 40,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -580,11 +816,11 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Container(
-                  height: 42,
+                  height: 40,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -616,48 +852,45 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
           // Sub-status Row
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF2563EB),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${_filteredAdmissions.length} Admitted Candidates filtered',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                  ],
-                ),
-                InkWell(
-                  onTap: _resetFilters,
-                  child: const Text(
-                    'Reset filters',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
                       color: Color(0xFF2563EB),
+                      shape: BoxShape.circle,
                     ),
                   ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${_filteredAdmissions.length} Admitted Candidates filtered',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: _resetFilters,
+                child: const Text(
+                  'Reset filters',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2563EB),
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -668,7 +901,7 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
@@ -681,12 +914,13 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Table Card Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
+                top: Radius.circular(16),
               ),
               border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
             ),
@@ -704,309 +938,494 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
                         color: Color(0xFF0F172A),
                       ),
                     ),
-                  ],
-                ),           
-              ],
-            ),
-          ),
-          if (_filteredAdmissions.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.person_search_outlined,
-                    size: 40,
-                    color: Colors.grey.shade300,
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'No admission records found',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Try changing your search query or reset active filters.',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            )
-          else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                headingRowHeight: 38,
-                dataRowMinHeight: 48,
-                dataRowMaxHeight: 52,
-                horizontalMargin: 16,
-                columnSpacing: 18,
-                headingRowColor: WidgetStateProperty.all(
-                  const Color(0xFFF8FAFC),
-                ),
-                columns: const [
-                  DataColumn(
-                    label: Text(
-                      'ID',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'Student Name',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'DOB',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'Gender',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'Class',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'Phone',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'Admission Date',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'Status',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-                rows: _filteredAdmissions.map((admission) {
-                  final idNum = admission['id'] as int? ?? 0;
-                  final name = admission['name']?.toString() ?? '-';
-                  final initials = _getInitials(name);
-                  final avatarColor = _getAvatarColor(idNum);
-                  final gender = admission['gender']?.toString() ?? '-';
-                  final className = admission['className']?.toString() ?? '-';
-                  final phone = admission['phone']?.toString() ?? '-';
-                  final dob = admission['dob']?.toString() ?? '-';
-                  final createdAt = admission['createdAt'] != null
-                      ? DateTime.tryParse(
-                              admission['createdAt'].toString(),
-                            )?.toString().split('.')[0] ??
-                            '-'
-                      : '-';
-
-                  return DataRow(
-                    onSelectChanged: (_) =>
-                        _showStudentProfileDialog(admission),
-                    cells: [
-                      // ID
-                      DataCell(
-                        Text(
-                          '#${idNum.toString().padLeft(2, '0')}',
+                    if (_selectedIds.isNotEmpty) ...[
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFBFDBFE)),
+                        ),
+                        child: Text(
+                          '${_selectedIds.length} selected',
                           style: const TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ),
-                      // Name with Avatar
-                      DataCell(
-                        Row(
-                          children: [
-                            Container(
-                              width: 26,
-                              height: 26,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: avatarColor.withValues(alpha: 0.15),
-                                border: Border.all(
-                                  color: avatarColor.withValues(alpha: 0.5),
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  initials,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: avatarColor,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              name,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // DOB
-                      DataCell(
-                        Text(
-                          dob,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF475569),
-                          ),
-                        ),
-                      ),
-                      // Gender
-                      DataCell(
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            gender,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF334155),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Class
-                      DataCell(
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEEF2FF),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFFC7D2FE)),
-                          ),
-                          child: Text(
-                            className,
-                            style: const TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF4338CA),
-                            ),
-                          ),
-                        ),
-                      ),
-                      DataCell(
-                        Text(
-                          phone,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontFamily: 'monospace',
-                            color: Color(0xFF475569),
-                          ),
-                        ),
-                      ),
-                      DataCell(
-                        Text(
-                          createdAt,
-                          style: const TextStyle(
-                            fontSize: 10.5,
-                            fontFamily: 'monospace',
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ),
-                      DataCell(
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFA7F3D0)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              CircleAvatar(
-                                radius: 3,
-                                backgroundColor: Color(0xFF10B981),
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                'Admitted',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF065F46),
-                                ),
-                              ),
-                            ],
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1D4ED8),
                           ),
                         ),
                       ),
                     ],
-                  );
-                }).toList(),
-              ),
+                  ],
+                ),
+                if (_selectedIds.isNotEmpty)
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => setState(() => _selectedIds.clear()),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          minimumSize: Size.zero,
+                        ),
+                        child: const Text(
+                          'Deselect all',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      ElevatedButton.icon(
+                        onPressed: _confirmDeleteSelected,
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                        label: Text(
+                          'Delete (${_selectedIds.length})',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFDC2626),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          minimumSize: Size.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ),
-          // Compact Table Footer
+          ),
+
+          // Table Content / Empty State
+          Expanded(
+            child: _filteredAdmissions.isEmpty
+                ? Center(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 30,
+                          horizontal: 20,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.person_search_outlined,
+                              size: 40,
+                              color: Colors.grey.shade300,
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'No admission records found',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Try changing your search query or reset active filters.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder: (context, outerConstraints) {
+                      final tableMinWidth = outerConstraints.maxWidth;
+                      final allFilteredIds = _filteredAdmissions
+                          .map((e) => e['id'] as int?)
+                          .whereType<int>()
+                          .toSet();
+                      return Scrollbar(
+                        controller: _verticalScrollController,
+                        thumbVisibility: true,
+                        child: SingleChildScrollView(
+                          controller: _verticalScrollController,
+                          scrollDirection: Axis.vertical,
+                          child: Scrollbar(
+                            controller: _horizontalScrollController,
+                            thumbVisibility: true,
+                            notificationPredicate: (notif) => notif.depth == 1,
+                            child: SingleChildScrollView(
+                              controller: _horizontalScrollController,
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minWidth: tableMinWidth,
+                                ),
+                                child: DataTable(
+                                showCheckboxColumn: true,
+                                headingRowHeight: 38,
+                                dataRowMinHeight: 48,
+                                dataRowMaxHeight: 52,
+                                horizontalMargin: 16,
+                                columnSpacing: 18,
+                                headingRowColor: WidgetStateProperty.all(
+                                  const Color(0xFFF8FAFC),
+                                ),
+                                onSelectAll: (bool? isSelected) {
+                                  setState(() {
+                                    if (isSelected == true) {
+                                      _selectedIds.addAll(allFilteredIds);
+                                    } else {
+                                      _selectedIds.removeAll(allFilteredIds);
+                                    }
+                                  });
+                                },
+                                columns: const [
+                                  DataColumn(
+                                    label: Text(
+                                      'ID',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Student Name',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'DOB',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Gender',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Class',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Phone',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Admission Date',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),                         
+                                  DataColumn(
+                                    label: Text(
+                                      'Actions',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                rows: _filteredAdmissions.map((admission) {
+                                  final idNum = admission['id'] as int? ?? 0;
+                                  final isSelected = _selectedIds.contains(
+                                    idNum,
+                                  );
+                                  final name =
+                                      admission['name']?.toString() ?? '-';
+                                  final initials = _getInitials(name);
+                                  final avatarColor = _getAvatarColor(idNum);
+                                  final gender =
+                                      admission['gender']?.toString() ?? '-';
+                                  final className =
+                                      admission['className']?.toString() ?? '-';
+                                  final phone =
+                                      admission['phone']?.toString() ?? '-';
+                                  final dob =
+                                      admission['dob']?.toString() ?? '-';
+                                  final createdAt =
+                                      admission['createdAt'] != null
+                                      ? DateTime.tryParse(
+                                              admission['createdAt'].toString(),
+                                            )?.toString().split('.')[0] ??
+                                            '-'
+                                      : '-';
+
+                                  return DataRow(
+                                    selected: isSelected,
+                                    onSelectChanged: (bool? selected) {
+                                      setState(() {
+                                        if (selected == true) {
+                                          _selectedIds.add(idNum);
+                                        } else {
+                                          _selectedIds.remove(idNum);
+                                        }
+                                      });
+                                    },
+                                    cells: [
+                                      // ID
+                                      DataCell(
+                                        Text(
+                                          '#${idNum.toString().padLeft(2, '0')}',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ),
+                                      // Name with Avatar
+                                      DataCell(
+                                        InkWell(
+                                          onTap: () =>
+                                              _showStudentProfileDialog(
+                                                admission,
+                                              ),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 4,
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Container(
+                                                  width: 26,
+                                                  height: 26,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: avatarColor
+                                                        .withValues(
+                                                          alpha: 0.15,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: avatarColor
+                                                          .withValues(
+                                                            alpha: 0.5,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
+                                                      initials,
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: avatarColor,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  name,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF0F172A),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      // DOB
+                                      DataCell(
+                                        Text(
+                                          dob,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Color(0xFF475569),
+                                          ),
+                                        ),
+                                      ),
+                                      // Gender
+                                      DataCell(
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF1F5F9),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            gender,
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF334155),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      // Class
+                                      DataCell(
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFEEF2FF),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            border: Border.all(
+                                              color: const Color(0xFFC7D2FE),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            className,
+                                            style: const TextStyle(
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF4338CA),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      // Phone
+                                      DataCell(
+                                        Text(
+                                          phone,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontFamily: 'monospace',
+                                            color: Color(0xFF475569),
+                                          ),
+                                        ),
+                                      ),
+                                      // Created At
+                                      DataCell(
+                                        Text(
+                                          createdAt,
+                                          style: const TextStyle(
+                                            fontSize: 10.5,
+                                            fontFamily: 'monospace',
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ),
+                                      // Actions
+                                      DataCell(
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.visibility_outlined,
+                                                size: 16,
+                                                color: Color(0xFF2563EB),
+                                              ),
+                                              tooltip: 'View Profile',
+                                              padding: EdgeInsets.zero,
+                                              constraints: const BoxConstraints(
+                                                minWidth: 28,
+                                                minHeight: 28,
+                                              ),
+                                              onPressed: () =>
+                                                  _showStudentProfileDialog(
+                                                    admission,
+                                                  ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.delete_outline,
+                                                size: 16,
+                                                color: Color(0xFFDC2626),
+                                              ),
+                                              tooltip: 'Delete Record',
+                                              padding: EdgeInsets.zero,
+                                              constraints: const BoxConstraints(
+                                                minWidth: 28,
+                                                minHeight: 28,
+                                              ),
+                                              onPressed: () =>
+                                                  _confirmDeleteSingle(
+                                                    idNum,
+                                                    name,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  );
+                },
+              ),
+          ),
+
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
               borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(20),
+                bottom: Radius.circular(16),
               ),
               border: Border(top: BorderSide(color: Colors.grey.shade200)),
             ),
@@ -1014,34 +1433,30 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Showing ${_filteredAdmissions.length} of ${_allAdmissions.length} entries',
+                  'Showing ${_filteredAdmissions.length} of ${_allAdmissions.length} entries${_selectedIds.isNotEmpty ? ' • ${_selectedIds.length} selected' : ''}',
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF64748B),
                   ),
                 ),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2563EB),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        '1',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2563EB),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    '1',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -1051,41 +1466,32 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
     );
   }
 
-  Widget _buildSecurityNotice() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
-        Icon(Icons.verified_user, size: 14, color: Color(0xFF10B981)),
-        SizedBox(width: 6),
-        Text(
-          'Protected with Sentosa 2.0',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF64748B),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSystemStatusBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.8),
-        border: Border(
-          top: BorderSide(color: Colors.grey.shade200.withValues(alpha: 0.8)),
-        ),
+        color: Colors.white.withValues(alpha: 0.9),
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
-          Text(
-            'Sentosa',
-            style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.verified_user, size: 13, color: Color(0xFF10B981)),
+              SizedBox(width: 5),
+              Text(
+                'Protected with Sentosa 2.0',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
           ),
-          Text(
+          const Text(
             'Sentosa • Windows Mode',
             style: TextStyle(
               fontSize: 10,
@@ -1107,7 +1513,7 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
           .where((e) => e.isNotEmpty)
           .toSet(),
     ];
-    final genderOptions = ['All Genders', 'Male', 'Female', 'Other'];
+    final genderOptions = ['All Genders', 'Male', 'Female'];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -1141,27 +1547,20 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
                   ),
                 ),
 
-                // Main Layout
+                // Main Layout: Table stretches all the way to the bottom bar
                 SafeArea(
                   child: Column(
                     children: [
                       _buildScreenNavHeader(),
                       Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               _buildFilterCard(classOptions, genderOptions),
-                              const SizedBox(height: 14),
-                              _buildDataTableCard(),
-                              const SizedBox(height: 14),
-                              const SizedBox(height: 14),
-                              _buildSecurityNotice(),
                               const SizedBox(height: 10),
+                              Expanded(child: _buildDataTableCard()),
                             ],
                           ),
                         ),
