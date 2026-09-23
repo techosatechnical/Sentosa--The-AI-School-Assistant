@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import 'package:audioplayers/audioplayers.dart';
 import '../services/service.admission.dart';
+import '../services/service.storage.dart';
 
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
@@ -34,7 +35,6 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
   final PageController _pageController = PageController();
   int _currentStep = 0;
 
-  // Form Data
   final TextEditingController _nameController = TextEditingController();
   DateTime? _selectedDob;
   String? _selectedGender;
@@ -42,16 +42,13 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
   final TextEditingController _phoneController = TextEditingController();
   String? _photoPath;
 
-  // Focus Nodes
   final FocusNode _nameFocus = FocusNode();
   final FocusNode _phoneFocus = FocusNode();
 
-  // Camera
   int _cameraId = -1;
   bool _isCameraInitialized = false;
   bool _isCapturing = false;
 
-  // Animation for Camera Frame
   late AnimationController _progressController;
 
   final List<String> _classOptions = List.generate(
@@ -59,7 +56,6 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
     (index) => 'Grade ${index + 1}',
   );
 
-  // Audio Player for Success Greeting
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   String _formatDate(DateTime date) {
@@ -164,7 +160,6 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
         curve: Curves.easeInOutCubic,
       );
 
-      // Auto focus logic
       if (_currentStep == 0) _nameFocus.requestFocus();
       if (_currentStep == 1) FocusScope.of(context).unfocus();
       if (_currentStep == 2) _phoneFocus.requestFocus();
@@ -183,8 +178,9 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
 
     try {
       final XFile file = await CameraPlatform.instance.takePicture(_cameraId);
+      final securePath = await AppStorageService().saveStudentPhoto(file.path);
       setState(() {
-        _photoPath = file.path;
+        _photoPath = securePath;
         _isCapturing = false;
       });
     } catch (e) {
@@ -198,7 +194,7 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
   Future<void> _playRandomLocalGreeting() async {
     try {
       final random = java_math.Random();
-      final index = random.nextInt(5) + 1; // 1 to 5
+      final index = random.nextInt(5) + 1;
       await _audioPlayer.play(AssetSource('audio/greeting_$index.wav'));
     } catch (e) {
       debugPrint("Greeting Audio Failed (Non-blocking): $e");
@@ -676,6 +672,11 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
             children: [
               OutlinedButton(
                 onPressed: () {
+                  if (_photoPath != null) {
+                    try {
+                      File(_photoPath!).deleteSync();
+                    } catch (_) {}
+                  }
                   setState(() {
                     _photoPath = null;
                     _progressController.reset();
@@ -683,8 +684,13 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
                   });
                 },
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: const Text('Recapture', style: TextStyle(fontSize: 18)),
               ),
@@ -694,8 +700,13 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueAccent,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: const Text('Continue', style: TextStyle(fontSize: 18)),
               ),

@@ -70,4 +70,9 @@ class AdmissionDbService {
     final db = await database;
     return await db.query('admissions', orderBy: 'createdAt DESC');
   }
+
+  Future<int> clearAllAdmissions() async {
+    final db = await database;
+    return await db.delete('admissions');
+  }
 }

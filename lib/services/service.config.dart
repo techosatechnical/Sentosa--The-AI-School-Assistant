@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart';
+import 'package:path/path.dart' as p;
+import 'service.storage.dart';
 
 class ConfigService {
   static const String _defaultPin = '313431';
@@ -12,9 +12,8 @@ class ConfigService {
   ConfigService._internal();
 
   Future<File> get _configFile async {
-    final directory = await getApplicationDocumentsDirectory();
-    final path = join(directory.path, _fileName);
-    return File(path);
+    final docsDir = await AppStorageService().getDocumentsDirectory();
+    return File(p.join(docsDir.path, _fileName));
   }
 
   Future<String> getPin() async {
