@@ -518,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen>
                                         _buildRobotHeadHeroSection(heroScale),
                                         SizedBox(height: 8 * heroScale),
                                         _buildSpeechBubble(),
-                                        SizedBox(height: 30 * heroScale),
+                                        SizedBox(height: 45 * heroScale),
                                         AnimatedSwitcher(
                                           duration: const Duration(
                                             milliseconds: 500,
@@ -774,9 +774,9 @@ class _HomeScreenState extends State<HomeScreen>
                 onTap: _triggerRobotReaction,
                 child: Container(
                   key: _visorKey,
-                  width: 310 * scale,
-                  height: 172 * scale,
-                  padding: EdgeInsets.all(15 * scale),
+                  width: 538 * scale,
+                  height: 297 * scale,
+                  padding: EdgeInsets.all(26 * scale),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
@@ -787,7 +787,7 @@ class _HomeScreenState extends State<HomeScreen>
                         Color(0xFFD6E7FA),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(76 * scale),
+                    borderRadius: BorderRadius.circular(132 * scale),
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFF2575FC).withValues(alpha: 0.24),
@@ -816,7 +816,7 @@ class _HomeScreenState extends State<HomeScreen>
                           Color(0xFF03070D),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(62 * scale),
+                      borderRadius: BorderRadius.circular(106 * scale),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.8),
@@ -836,11 +836,11 @@ class _HomeScreenState extends State<HomeScreen>
                           top: 0,
                           left: 0,
                           right: 0,
-                          height: 65 * scale,
+                          height: 112 * scale,
                           child: Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(60 * scale),
+                                top: Radius.circular(104 * scale),
                               ),
                               gradient: LinearGradient(
                                 begin: Alignment.topCenter,
@@ -859,7 +859,7 @@ class _HomeScreenState extends State<HomeScreen>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _buildExpressiveEye(scale),
-                            SizedBox(width: 32 * scale),
+                            SizedBox(width: 55 * scale),
                             _buildExpressiveEye(scale),
                           ],
                         ),
@@ -887,14 +887,14 @@ class _HomeScreenState extends State<HomeScreen>
           children: [
             Transform.rotate(
               angle: isLeft ? -0.58 : 0.58,
-              child: _rayPill(width: 24 * scale, scale: scale),
+              child: _rayPill(width: 41 * scale, scale: scale),
             ),
-            SizedBox(height: 6 * scale),
-            _rayPill(width: 30 * scale, scale: scale),
-            SizedBox(height: 6 * scale),
+            SizedBox(height: 10 * scale),
+            _rayPill(width: 52 * scale, scale: scale),
+            SizedBox(height: 10 * scale),
             Transform.rotate(
               angle: isLeft ? 0.58 : -0.58,
-              child: _rayPill(width: 24 * scale, scale: scale),
+              child: _rayPill(width: 41 * scale, scale: scale),
             ),
           ],
         ),
@@ -905,10 +905,10 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _rayPill({required double width, required double scale}) {
     return Container(
       width: width,
-      height: 8.5 * scale,
+      height: 14.5 * scale,
       decoration: BoxDecoration(
         color: const Color(0xFF4096FE),
-        borderRadius: BorderRadius.circular(10 * scale),
+        borderRadius: BorderRadius.circular(18 * scale),
         boxShadow: [
           BoxShadow(
             color: const Color(0xBF4096FE),
@@ -948,13 +948,13 @@ class _HomeScreenState extends State<HomeScreen>
                   0.8,
                   1.2,
                 );
-                final translateY = 12.0 * scale * tSquint;
+                final translateY = 20.0 * scale * tSquint;
 
-                final blinkRadius = (26.0 - (22.0 * tBlink)) * scale;
-                final topRadius = (blinkRadius + (14.0 * scale * tSquint))
-                    .clamp(4.0, 40.0 * scale);
-                final bottomRadius = (blinkRadius - (16.0 * scale * tSquint))
-                    .clamp(4.0, 26.0 * scale);
+                final blinkRadius = (45.0 - (38.0 * tBlink)) * scale;
+                final topRadius = (blinkRadius + (25.0 * scale * tSquint))
+                    .clamp(4.0, 70.0 * scale);
+                final bottomRadius = (blinkRadius - (27.0 * scale * tSquint))
+                    .clamp(4.0, 45.0 * scale);
                 final borderRadius = BorderRadius.vertical(
                   top: Radius.circular(topRadius),
                   bottom: Radius.circular(bottomRadius),
@@ -963,8 +963,8 @@ class _HomeScreenState extends State<HomeScreen>
                 final specularOpacity = ((1.0 - tBlink) * (1.0 - tSquint))
                     .clamp(0.0, 1.0);
 
-                final glowSpread = (2.0 + (tGlow * 3.0)) * scale;
-                final glowBlur = (16.0 + (tGlow * 12.0)) * scale;
+                final glowSpread = (3.5 + (tGlow * 5.2)) * scale;
+                final glowBlur = (28.0 + (tGlow * 20.0)) * scale;
 
                 return Transform.translate(
                   offset: Offset(0, translateY),
@@ -973,14 +973,14 @@ class _HomeScreenState extends State<HomeScreen>
                     scaleY: scaleY,
                     alignment: Alignment.center,
                     child: Container(
-                      width: 72 * scale,
-                      height: 72 * scale,
+                      width: 124 * scale,
+                      height: 124 * scale,
                       decoration: BoxDecoration(
                         color: const Color(0xFF020914),
                         borderRadius: borderRadius,
                         border: Border.all(
                           color: const Color(0xFF38BDF8),
-                          width: (tSquint > 0.4 ? 3.5 : 5.0) * scale,
+                          width: (tSquint > 0.4 ? 6.0 : 8.7) * scale,
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -1001,17 +1001,17 @@ class _HomeScreenState extends State<HomeScreen>
                       child: Stack(
                         children: [
                           Positioned(
-                            top: 8 * scale,
-                            right: 8 * scale,
+                            top: 13 * scale,
+                            right: 13 * scale,
                             child: Opacity(
                               opacity: specularOpacity,
                               child: Container(
-                                width: 12 * scale,
-                                height: 12 * scale,
+                                width: 20 * scale,
+                                height: 20 * scale,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(
-                                    4 * scale,
+                                    8 * scale,
                                   ),
                                   boxShadow: const [
                                     BoxShadow(
@@ -1025,13 +1025,13 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
 
                           Positioned(
-                            bottom: 8 * scale,
-                            left: 8 * scale,
+                            bottom: 13 * scale,
+                            left: 13 * scale,
                             child: Opacity(
                               opacity: specularOpacity * 0.5,
                               child: Container(
-                                width: 4 * scale,
-                                height: 4 * scale,
+                                width: 8 * scale,
+                                height: 8 * scale,
                                 decoration: const BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: Color(0xFFBAE6FD),
@@ -1264,7 +1264,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                   SizedBox(height: 3),
                   Text(
-                    "Your personal AI assistant.",
+                    "Your School's AI assistant.",
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -1275,7 +1275,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 75),
           StatusBadge(
             isListening: _isListening,
             isSpeaking: _isSpeaking,
@@ -1293,7 +1293,7 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           const SizedBox(height: 24),
           MicButton(
-            size: 200.0,
+            size: 400.0,
             pulseAnimation: _rayPulseController,
             waveAnimation: _waveController,
             isListening: _isListening,
@@ -1559,7 +1559,6 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
-
 
   Widget _buildPersistentBottomBar() {
     return Container(
