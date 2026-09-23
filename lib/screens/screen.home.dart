@@ -413,6 +413,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final blobScale = (screenWidth / 430).clamp(1.0, 1.9);
+
     return Scaffold(
       backgroundColor: const Color(0xFFDBEAFC),
       body: MouseRegion(
@@ -454,11 +457,11 @@ class _HomeScreenState extends State<HomeScreen>
                     top: -50,
                     left: -50,
                     child: Container(
-                      width: 250,
-                      height: 250,
+                      width: 250 * blobScale,
+                      height: 250 * blobScale,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFFBAE6FD).withValues(alpha: 0.45),
+                        color: const Color(0xFFBAE6FD).withValues(alpha: 0.6),
                       ),
                     ),
                   ),
@@ -466,11 +469,11 @@ class _HomeScreenState extends State<HomeScreen>
                     top: 280,
                     right: -60,
                     child: Container(
-                      width: 260,
-                      height: 260,
+                      width: 260 * blobScale,
+                      height: 260 * blobScale,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFFDBEAFE).withValues(alpha: 0.5),
+                        color: const Color(0xFFDBEAFE).withValues(alpha: 0.68),
                       ),
                     ),
                   ),
@@ -478,11 +481,11 @@ class _HomeScreenState extends State<HomeScreen>
                     bottom: 120,
                     left: -50,
                     child: Container(
-                      width: 240,
-                      height: 240,
+                      width: 240 * blobScale,
+                      height: 240 * blobScale,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFFCCFBF1).withValues(alpha: 0.35),
+                        color: const Color(0xFFCCFBF1).withValues(alpha: 0.5),
                       ),
                     ),
                   ),
@@ -493,55 +496,79 @@ class _HomeScreenState extends State<HomeScreen>
                       children: [
                         _buildTopHeader(),
                         Expanded(
-                          child: SingleChildScrollView(
-                            physics: const ClampingScrollPhysics(),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                              ),
-                              child: Column(
-                                children: [
-                                  const SizedBox(height: 4),
-                                  _buildRobotHeadHeroSection(),
-                                  const SizedBox(height: 4),
-                                  _buildSpeechBubble(),
-                                  const SizedBox(height: 10),
-                                  AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 500),
-                                    transitionBuilder: (child, animation) {
-                                      final offsetAnimation =
-                                          Tween<Offset>(
-                                            begin: const Offset(1.0, 0.0),
-                                            end: Offset.zero,
-                                          ).animate(
-                                            CurvedAnimation(
-                                              parent: animation,
-                                              curve: Curves.easeInOutQuart,
-                                            ),
-                                          );
-                                      return SlideTransition(
-                                        position: offsetAnimation,
-                                        child: FadeTransition(
-                                          opacity: animation,
-                                          child: child,
-                                        ),
-                                      );
-                                    },
-                                    child: _isMicModeActive
-                                        ? _buildSentosaMicSection()
-                                        : Column(
-                                            key: const ValueKey('QuickActions'),
-                                            children: [
-                                              _buildQuickActionsHeader(),
-                                              const SizedBox(height: 8),
-                                              _buildQuickActionsGrid(),
-                                              const SizedBox(height: 8),
-                                            ],
-                                          ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final heroScale = (constraints.maxHeight / 760)
+                                  .clamp(1.0, 1.6);
+                              return SingleChildScrollView(
+                                physics: const ClampingScrollPhysics(),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minHeight: constraints.maxHeight,
                                   ),
-                                ],
-                              ),
-                            ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      children: [
+                                        SizedBox(height: 60 * heroScale),
+                                        _buildRobotHeadHeroSection(heroScale),
+                                        SizedBox(height: 8 * heroScale),
+                                        _buildSpeechBubble(),
+                                        SizedBox(height: 30 * heroScale),
+                                        AnimatedSwitcher(
+                                          duration: const Duration(
+                                            milliseconds: 500,
+                                          ),
+                                          transitionBuilder:
+                                              (child, animation) {
+                                                final offsetAnimation =
+                                                    Tween<Offset>(
+                                                      begin: const Offset(
+                                                        1.0,
+                                                        0.0,
+                                                      ),
+                                                      end: Offset.zero,
+                                                    ).animate(
+                                                      CurvedAnimation(
+                                                        parent: animation,
+                                                        curve: Curves
+                                                            .easeInOutQuart,
+                                                      ),
+                                                    );
+                                                return SlideTransition(
+                                                  position: offsetAnimation,
+                                                  child: FadeTransition(
+                                                    opacity: animation,
+                                                    child: child,
+                                                  ),
+                                                );
+                                              },
+                                          child: _isMicModeActive
+                                              ? _buildSentosaMicSection()
+                                              : Column(
+                                                  key: const ValueKey(
+                                                    'QuickActions',
+                                                  ),
+                                                  children: [
+                                                    _buildQuickActionsHeader(),
+                                                    SizedBox(
+                                                      height: 8 * heroScale,
+                                                    ),
+                                                    _buildQuickActionsGrid(),
+                                                  ],
+                                                ),
+                                        ),
+                                        SizedBox(height: 16 * heroScale),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                         _buildPersistentBottomBar(),
@@ -714,7 +741,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildRobotHeadHeroSection() {
+  Widget _buildRobotHeadHeroSection(double scale) {
     return AnimatedBuilder(
       animation: Listenable.merge([
         _headFloatController,
@@ -733,17 +760,23 @@ class _HomeScreenState extends State<HomeScreen>
             alignment: Alignment.center,
             clipBehavior: Clip.none,
             children: [
-              Positioned(left: 10, child: _buildRays(isLeft: true)),
+              Positioned(
+                left: 10 * scale,
+                child: _buildRays(isLeft: true, scale: scale),
+              ),
 
-              Positioned(right: 10, child: _buildRays(isLeft: false)),
+              Positioned(
+                right: 10 * scale,
+                child: _buildRays(isLeft: false, scale: scale),
+              ),
 
               GestureDetector(
                 onTap: _triggerRobotReaction,
                 child: Container(
                   key: _visorKey,
-                  width: 310,
-                  height: 172,
-                  padding: const EdgeInsets.all(15),
+                  width: 310 * scale,
+                  height: 172 * scale,
+                  padding: EdgeInsets.all(15 * scale),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
@@ -754,17 +787,17 @@ class _HomeScreenState extends State<HomeScreen>
                         Color(0xFFD6E7FA),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(76),
+                    borderRadius: BorderRadius.circular(76 * scale),
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFF2575FC).withValues(alpha: 0.24),
-                        blurRadius: 36,
-                        offset: const Offset(0, 16),
+                        blurRadius: 36 * scale,
+                        offset: Offset(0, 16 * scale),
                       ),
                       BoxShadow(
                         color: const Color(0xFF0F2942).withValues(alpha: 0.1),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
+                        blurRadius: 16 * scale,
+                        offset: Offset(0, 6 * scale),
                       ),
                     ],
                     border: Border.all(
@@ -783,7 +816,7 @@ class _HomeScreenState extends State<HomeScreen>
                           Color(0xFF03070D),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(62),
+                      borderRadius: BorderRadius.circular(62 * scale),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.8),
@@ -803,11 +836,11 @@ class _HomeScreenState extends State<HomeScreen>
                           top: 0,
                           left: 0,
                           right: 0,
-                          height: 65,
+                          height: 65 * scale,
                           child: Container(
                             decoration: BoxDecoration(
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(60),
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(60 * scale),
                               ),
                               gradient: LinearGradient(
                                 begin: Alignment.topCenter,
@@ -825,9 +858,9 @@ class _HomeScreenState extends State<HomeScreen>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildExpressiveEye(),
-                            const SizedBox(width: 32),
-                            _buildExpressiveEye(),
+                            _buildExpressiveEye(scale),
+                            SizedBox(width: 32 * scale),
+                            _buildExpressiveEye(scale),
                           ],
                         ),
                       ],
@@ -842,7 +875,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildRays({required bool isLeft}) {
+  Widget _buildRays({required bool isLeft, required double scale}) {
     final pulseScale = 1.0 + (_rayPulseController.value * 0.12);
     final pulseOpacity = 0.75 + (_rayPulseController.value * 0.25);
 
@@ -853,15 +886,15 @@ class _HomeScreenState extends State<HomeScreen>
         child: Column(
           children: [
             Transform.rotate(
-              angle: isLeft ? -0.58 : 0.58, // ~35 deg
-              child: _rayPill(width: 24),
+              angle: isLeft ? -0.58 : 0.58,
+              child: _rayPill(width: 24 * scale, scale: scale),
             ),
-            const SizedBox(height: 6),
-            _rayPill(width: 30),
-            const SizedBox(height: 6),
+            SizedBox(height: 6 * scale),
+            _rayPill(width: 30 * scale, scale: scale),
+            SizedBox(height: 6 * scale),
             Transform.rotate(
               angle: isLeft ? 0.58 : -0.58,
-              child: _rayPill(width: 24),
+              child: _rayPill(width: 24 * scale, scale: scale),
             ),
           ],
         ),
@@ -869,21 +902,25 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _rayPill({required double width}) {
+  Widget _rayPill({required double width, required double scale}) {
     return Container(
       width: width,
-      height: 8.5,
+      height: 8.5 * scale,
       decoration: BoxDecoration(
         color: const Color(0xFF4096FE),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: const [
-          BoxShadow(color: Color(0xBF4096FE), blurRadius: 10, spreadRadius: 1),
+        borderRadius: BorderRadius.circular(10 * scale),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xBF4096FE),
+            blurRadius: 10 * scale,
+            spreadRadius: 1 * scale,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildExpressiveEye() {
+  Widget _buildExpressiveEye(double scale) {
     return RepaintBoundary(
       child: ValueListenableBuilder<Offset>(
         valueListenable: _gazeNotifier,
@@ -911,17 +948,13 @@ class _HomeScreenState extends State<HomeScreen>
                   0.8,
                   1.2,
                 );
-                final translateY = 12.0 * tSquint;
+                final translateY = 12.0 * scale * tSquint;
 
-                final blinkRadius = 26.0 - (22.0 * tBlink);
-                final topRadius = (blinkRadius + (14.0 * tSquint)).clamp(
-                  4.0,
-                  40.0,
-                );
-                final bottomRadius = (blinkRadius - (16.0 * tSquint)).clamp(
-                  4.0,
-                  26.0,
-                );
+                final blinkRadius = (26.0 - (22.0 * tBlink)) * scale;
+                final topRadius = (blinkRadius + (14.0 * scale * tSquint))
+                    .clamp(4.0, 40.0 * scale);
+                final bottomRadius = (blinkRadius - (16.0 * scale * tSquint))
+                    .clamp(4.0, 26.0 * scale);
                 final borderRadius = BorderRadius.vertical(
                   top: Radius.circular(topRadius),
                   bottom: Radius.circular(bottomRadius),
@@ -930,8 +963,8 @@ class _HomeScreenState extends State<HomeScreen>
                 final specularOpacity = ((1.0 - tBlink) * (1.0 - tSquint))
                     .clamp(0.0, 1.0);
 
-                final glowSpread = 2.0 + (tGlow * 3.0);
-                final glowBlur = 16.0 + (tGlow * 12.0);
+                final glowSpread = (2.0 + (tGlow * 3.0)) * scale;
+                final glowBlur = (16.0 + (tGlow * 12.0)) * scale;
 
                 return Transform.translate(
                   offset: Offset(0, translateY),
@@ -940,14 +973,14 @@ class _HomeScreenState extends State<HomeScreen>
                     scaleY: scaleY,
                     alignment: Alignment.center,
                     child: Container(
-                      width: 72,
-                      height: 72,
+                      width: 72 * scale,
+                      height: 72 * scale,
                       decoration: BoxDecoration(
                         color: const Color(0xFF020914),
                         borderRadius: borderRadius,
                         border: Border.all(
                           color: const Color(0xFF38BDF8),
-                          width: tSquint > 0.4 ? 3.5 : 5.0,
+                          width: (tSquint > 0.4 ? 3.5 : 5.0) * scale,
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -968,16 +1001,18 @@ class _HomeScreenState extends State<HomeScreen>
                       child: Stack(
                         children: [
                           Positioned(
-                            top: 8,
-                            right: 8,
+                            top: 8 * scale,
+                            right: 8 * scale,
                             child: Opacity(
                               opacity: specularOpacity,
                               child: Container(
-                                width: 12,
-                                height: 12,
+                                width: 12 * scale,
+                                height: 12 * scale,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(
+                                    4 * scale,
+                                  ),
                                   boxShadow: const [
                                     BoxShadow(
                                       color: Colors.white,
@@ -990,13 +1025,13 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
 
                           Positioned(
-                            bottom: 8,
-                            left: 8,
+                            bottom: 8 * scale,
+                            left: 8 * scale,
                             child: Opacity(
                               opacity: specularOpacity * 0.5,
                               child: Container(
-                                width: 4,
-                                height: 4,
+                                width: 4 * scale,
+                                height: 4 * scale,
                                 decoration: const BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: Color(0xFFBAE6FD),
@@ -1308,6 +1343,33 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildCardGraphic(int index, Color dashColor) {
+    CustomPainter painter;
+    switch (index) {
+      case 0:
+        painter = TalkGraphicPainter(dashColor);
+        break;
+      case 1:
+        painter = AdmissionGraphicPainter(dashColor);
+        break;
+      case 2:
+        painter = PrincipalGraphicPainter(dashColor);
+        break;
+      case 3:
+        painter = MapGraphicPainter(dashColor);
+        break;
+      case 4:
+      default:
+        painter = CafeteriaGraphicPainter(dashColor);
+        break;
+    }
+    return SizedBox(
+      width: 76,
+      height: 72,
+      child: CustomPaint(painter: painter),
+    );
+  }
+
   Widget _buildQuickActionsGrid() {
     final cards = [
       ActionCardData(
@@ -1387,33 +1449,6 @@ class _HomeScreenState extends State<HomeScreen>
           },
         );
       },
-    );
-  }
-
-  Widget _buildCardGraphic(int index, Color dashColor) {
-    CustomPainter painter;
-    switch (index) {
-      case 0:
-        painter = TalkGraphicPainter(dashColor);
-        break;
-      case 1:
-        painter = AdmissionGraphicPainter(dashColor);
-        break;
-      case 2:
-        painter = PrincipalGraphicPainter(dashColor);
-        break;
-      case 3:
-        painter = MapGraphicPainter(dashColor);
-        break;
-      case 4:
-      default:
-        painter = CafeteriaGraphicPainter(dashColor);
-        break;
-    }
-    return SizedBox(
-      width: 76,
-      height: 72,
-      child: CustomPaint(painter: painter),
     );
   }
 
@@ -1524,6 +1559,7 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
+
 
   Widget _buildPersistentBottomBar() {
     return Container(
