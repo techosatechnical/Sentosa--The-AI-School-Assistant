@@ -183,9 +183,10 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
 
     try {
       final XFile file = await CameraPlatform.instance.takePicture(_cameraId);
-      _photoPath = file.path;
-      _isCapturing = false;
-      _nextStep(); // Proceed to review step
+      setState(() {
+        _photoPath = file.path;
+        _isCapturing = false;
+      });
     } catch (e) {
       debugPrint("Error capturing photo: $e");
       setState(() {
@@ -652,6 +653,58 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
   }
 
   Widget _buildStepCamera() {
+    if (_photoPath != null) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            "Looking good!",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 32),
+          ClipOval(
+            child: Image.file(
+              File(_photoPath!),
+              width: 300,
+              height: 300,
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _photoPath = null;
+                    _progressController.reset();
+                    _progressController.forward();
+                  });
+                },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text('Recapture', style: TextStyle(fontSize: 18)),
+              ),
+              const SizedBox(width: 16),
+              ElevatedButton(
+                onPressed: _nextStep,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text('Continue', style: TextStyle(fontSize: 18)),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -683,7 +736,7 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
                       value: _progressController.value,
                       strokeWidth: 8,
                       valueColor: const AlwaysStoppedAnimation<Color>(
-                        Colors.greenAccent,
+                        Colors.green,
                       ),
                     );
                   },

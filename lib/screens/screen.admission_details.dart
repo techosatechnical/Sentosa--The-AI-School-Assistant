@@ -5,6 +5,7 @@ class AdmissionDetailsScreen extends StatefulWidget {
   const AdmissionDetailsScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _AdmissionDetailsScreenState createState() => _AdmissionDetailsScreenState();
 }
 
@@ -50,7 +51,7 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final classOptions = ['All', ..._allAdmissions.map((e) => e['className']?.toString() ?? '').where((e) => e.isNotEmpty).toSet().toList()];
+    final classOptions = ['All', ..._allAdmissions.map((e) => e['className']?.toString() ?? '').where((e) => e.isNotEmpty).toSet()];
     final genderOptions = ['All', 'Male', 'Female', 'Other'];
 
     return Scaffold(
@@ -130,7 +131,7 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
                               ),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                             ),
-                            value: _selectedClass ?? 'All',
+                            initialValue: _selectedClass ?? 'All',
                             items: classOptions.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                             onChanged: (value) {
                               _selectedClass = value;
@@ -152,7 +153,7 @@ class _AdmissionDetailsScreenState extends State<AdmissionDetailsScreen> {
                               ),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                             ),
-                            value: _selectedGender ?? 'All',
+                            initialValue: _selectedGender ?? 'All',
                             items: genderOptions.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
                             onChanged: (value) {
                               _selectedGender = value;

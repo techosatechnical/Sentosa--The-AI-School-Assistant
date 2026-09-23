@@ -1,179 +1,438 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../services/service.config.dart';
-import 'screen.accessibility_menu.dart';
-import 'screen.change_pin.dart';
+import 'dart:math' as math;
+import 'package:sentosa/screens/screen.accessibility_menu.dart';
+import 'package:sentosa/screens/screen.change_pin.dart';
+import 'package:sentosa/services/service.config.dart';
 
 class PinEntryScreen extends StatefulWidget {
-  const PinEntryScreen({Key? key}) : super(key: key);
+  const PinEntryScreen({super.key});
 
   @override
-  _PinEntryScreenState createState() => _PinEntryScreenState();
+  State<PinEntryScreen> createState() => _PinEntryScreenState();
 }
 
-class _PinEntryScreenState extends State<PinEntryScreen> {
-  final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
-  String _errorText = '';
+class _PinEntryScreenState extends State<PinEntryScreen>
+    with SingleTickerProviderStateMixin {
+  String _pin = '';
+  final int _pinLength = 6;
+  bool _hasError = false;
+  final String _errorMessage = 'Incorrect PIN. Please try again.';
+  late AnimationController _shakeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+  }
 
   @override
   void dispose() {
-    for (var c in _controllers) { c.dispose(); }
-    for (var f in _focusNodes) { f.dispose(); }
+    _shakeController.dispose();
     super.dispose();
   }
 
-  void _onChanged(String value, int index) {
-    if (value.isNotEmpty && index < 5) {
-      _focusNodes[index + 1].requestFocus();
-    } else if (value.isEmpty && index > 0) {
-      _focusNodes[index - 1].requestFocus();
-    }
-    
-    // Auto-validate if all filled
-    final pin = _controllers.map((c) => c.text).join();
-    if (pin.length == 6) {
-      _validatePin();
+  void _onKeyPressed(String value) {
+    if (_pin.length < _pinLength) {
+      setState(() {
+        _pin += value;
+        _hasError = false;
+      });
+      if (_pin.length == _pinLength) {
+        _verifyPin();
+      }
     }
   }
 
-  Future<void> _validatePin() async {
-    final pin = _controllers.map((c) => c.text).join();
-    if (pin.length < 6) {
-      setState(() => _errorText = 'Please enter all 6 digits.');
-      return;
-    }
-
-    final savedPin = await ConfigService().getPin();
-    if (pin == savedPin) {
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const AccessibilityMenuScreen()),
-      );
-    } else {
+  void _onBackspace() {
+    if (_pin.isNotEmpty) {
       setState(() {
-        _errorText = 'Incorrect PIN.';
-        for (var c in _controllers) { c.clear(); }
-        _focusNodes[0].requestFocus();
+        _pin = _pin.substring(0, _pin.length - 1);
+        _hasError = false;
       });
     }
+  }
+
+  void _navigateToAccessibilityMenu() {
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const AccessibilityMenuScreen(),
+      ),
+    );
+  }
+
+  Future<void> _verifyPin() async {
+    await Future.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
+
+    final correctPin = await ConfigService().getPin();
+    if (_pin == correctPin) {
+      _navigateToAccessibilityMenu();
+    } else {
+      setState(() {
+        _hasError = true;
+        _pin = '';
+      });
+      _shakeController.forward(from: 0.0);
+    }
+  }
+
+  Widget _buildTopNav() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          InkWell(
+            onTap: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Icon(Icons.arrow_back, color: Colors.black),
+            ),
+          ),       
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPinSlots() {
+    return AnimatedBuilder(
+      animation: _shakeController,
+      builder: (context, child) {
+        final offset =
+            _hasError ? (10 * (1 - _shakeController.value) * (math.sin(_shakeController.value * 4 * math.pi))) : 0.0;
+        return Transform.translate(
+          offset: Offset(offset, 0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_pinLength, (index) {
+              final isFilled = index < _pin.length;
+              final isActive = index == _pin.length;
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 6),
+                width: 44,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: isFilled || isActive
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isActive
+                        ? Colors.blue.shade500
+                        : (isFilled ? Colors.blue.shade300 : Colors.grey.shade300),
+                    width: isActive ? 2 : 1,
+                  ),
+                  boxShadow: isActive
+                      ? [
+                          BoxShadow(
+                              color: Colors.blue.shade500.withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              spreadRadius: 1)
+                        ]
+                      : [],
+                ),
+                child: Center(
+                  child: isFilled
+                      ? Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade600,
+                            shape: BoxShape.circle,
+                          ),
+                        )
+                      : (isActive
+                          ? Container(
+                              width: 2,
+                              height: 24,
+                              color: Colors.blue.shade500,
+                            )
+                          : null),
+                ),
+              );
+            }),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildKeypad() {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 320),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 1.4,
+          crossAxisSpacing: 14,
+          mainAxisSpacing: 14,
+        ),
+        itemCount: 12,
+        itemBuilder: (context, index) {
+          if (index == 9) {
+            return _buildKeypadButton(
+              isIcon: true,
+              icon: Icons.clear_all_rounded,
+              label: 'Clear',
+              onTap: () {
+                setState(() {
+                  _pin = '';
+                  _hasError = false;
+                });
+              },
+              backgroundColor: Colors.blue.shade50.withValues(alpha: 0.8),
+              textColor: Colors.blue.shade700,
+            );
+          } else if (index == 11) {
+            return _buildKeypadButton(
+              isIcon: true,
+              icon: Icons.backspace_outlined,
+              onTap: _onBackspace,
+              backgroundColor: Colors.grey.shade100.withValues(alpha: 0.8),
+              textColor: Colors.grey.shade700,
+            );
+          } else {
+            final keyNumber = index == 10 ? '0' : '${index + 1}';
+            final letters = [
+              '', 'ABC', 'DEF', 'GHI', 'JKL', 'MNO', 'PQRS', 'TUV', 'WXYZ', '', '+', ''
+            ];
+            return _buildKeypadButton(
+              text: keyNumber,
+              label: letters[index],
+              onTap: () => _onKeyPressed(keyNumber),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildKeypadButton({
+    String? text,
+    String? label,
+    bool isIcon = false,
+    IconData? icon,
+    VoidCallback? onTap,
+    Color? backgroundColor,
+    Color? textColor,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        splashColor: Colors.grey.shade200,
+        highlightColor: Colors.grey.shade100,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: backgroundColor ?? Colors.white.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              )
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isIcon && icon != null)
+                Icon(icon, color: textColor ?? Colors.grey.shade800, size: 24)
+              else
+                Text(
+                  text ?? '',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: textColor ?? Colors.grey.shade800,
+                    height: 1.0,
+                  ),
+                ),
+              if (label != null && label.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 1.2,
+                    color: textColor ?? Colors.grey.shade400,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: const Text('Enter PIN', style: TextStyle(color: Colors.black87)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
-      ),
-      body: Stack(
-        children: [
-          Positioned(
-            top: -50,
-            left: -50,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFBAE6FD).withValues(alpha: 0.45),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 280,
-            right: -60,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFDBEAFE).withValues(alpha: 0.5),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 120,
-            left: -50,
-            child: Container(
-              width: 240,
-              height: 240,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFCCFBF1).withValues(alpha: 0.35),
-              ),
-            ),
-          ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.lock_outline, size: 64, color: Colors.blueAccent),
-              const SizedBox(height: 16),
-              const Text(
-                'Enter your 6-digit PIN to continue.',
-                style: TextStyle(fontSize: 18, color: Colors.black87),
-              ),
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(6, (index) {
-                  return Container(
-                    width: 50,
-                    margin: const EdgeInsets.symmetric(horizontal: 6),
-                    child: TextField(
-                      autofocus: index == 0,
-                      controller: _controllers[index],
-                      focusNode: _focusNodes[index],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      maxLength: 1,
-                      obscureText: true,
-                      obscuringCharacter: '•',
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      decoration: InputDecoration(
-                        counterText: '',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
-                        ),
-                      ),
-                      onChanged: (value) => _onChanged(value, index),
-                    ),
-                  );
-                }),
-              ),
-              if (_errorText.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text(_errorText, style: const TextStyle(color: Colors.red, fontSize: 16)),
-              ],
-              const SizedBox(height: 48),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ChangePinScreen()),
-                  );
-                },
-                child: const Text('Change PIN', style: TextStyle(fontSize: 16, color: Colors.blue)),
-              ),
+      backgroundColor: Colors.white, // Fallback
+      body: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          gradient: RadialGradient(
+            center: const Alignment(0, -0.6),
+            radius: 1.5,
+            colors: [
+              Colors.lightBlue.shade50.withValues(alpha: 0.7),
+              Colors.blue.shade50.withValues(alpha: 0.3),
+              Colors.grey.shade50,
             ],
           ),
-          ),
-      )],
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  _buildTopNav(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 16),
+                          Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.95),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.lightBlue.shade100),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blue.shade200.withValues(alpha: 0.2),
+                                  blurRadius: 20,
+                                  spreadRadius: 5,
+                                )
+                              ],
+                            ),
+                            child: Icon(Icons.shield_outlined,
+                                size: 36, color: Colors.blue.shade600),
+                          ),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Enter PIN',
+                            style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87),
+                          ),
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 48),
+                            child: Text(
+                              'Enter your 6-digit security PIN to access the Sentosa enterprise console.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 14, color: Colors.grey.shade500),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            height: 24,
+                            child: _hasError
+                                ? Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.error,
+                                          size: 14, color: Colors.red),
+                                      const SizedBox(width: 4),
+                                      Text(_errorMessage,
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.w500)),
+                                    ],
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildPinSlots(),
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ChangePinScreen(),
+                                ),
+                              );
+                            },
+                            icon: Icon(Icons.lock_reset,
+                                size: 14, color: Colors.blue.shade500),
+                            label: Text(
+                              'Change or Reset PIN',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue.shade600),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _buildKeypad(),
+                          const SizedBox(height: 48),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.verified_user,
+                                size: 14, color: Colors.green),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Secured with Sentosa 2.0',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Sentosa Desktop Runtime • Windows Mode',
+                          style: TextStyle(
+                              fontSize: 10, color: Colors.grey.shade400),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

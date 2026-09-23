@@ -34,10 +34,23 @@ class ConfigService {
   Future<void> setPin(String newPin) async {
     try {
       final file = await _configFile;
-      final Map<String, dynamic> data = {'pin': newPin};
+      if (!await file.parent.exists()) {
+        await file.parent.create(recursive: true);
+      }
+      Map<String, dynamic> data = {};
+      if (await file.exists()) {
+        try {
+          final contents = await file.readAsString();
+          final decoded = jsonDecode(contents);
+          if (decoded is Map<String, dynamic>) {
+            data = decoded;
+          }
+        } catch (_) {}
+      }
+      data['pin'] = newPin;
       await file.writeAsString(jsonEncode(data));
     } catch (e) {
-      // Ignore write errors
+      rethrow;
     }
   }
 }
