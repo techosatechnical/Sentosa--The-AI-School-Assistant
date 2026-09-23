@@ -145,11 +145,7 @@ class _HomeScreenState extends State<HomeScreen>
       }
     };
 
-    _wakeWordService.onInterruptDetected = (phrase) {
-      // Intentionally ignored. Voice-based interruption disabled
-      // due to noisy school environment false-positives.
-      // Users must tap the Mic button to interrupt.
-    };
+    _wakeWordService.onInterruptDetected = (phrase) {};
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
         setState(() {
@@ -243,24 +239,19 @@ class _HomeScreenState extends State<HomeScreen>
 
   String _cleanAIResponse(String input) {
     var text = input;
-    // Strip <think>...</think> and unclosed <think>... during live streaming
     text = text.replaceAll(
       RegExp(r'<think>[\s\S]*?(?:</think>|$)', caseSensitive: false),
       '',
     );
-    // Strip <thought>...</thought> and unclosed <thought>...
     text = text.replaceAll(
       RegExp(r'<thought>[\s\S]*?(?:</thought>|$)', caseSensitive: false),
       '',
     );
-    // Strip Thought: ... up to next paragraph or end
     text = text.replaceAll(
       RegExp(r'^\s*Thought:[\s\S]*?(?:\n\n|$)', caseSensitive: false),
       '',
     );
-    // Strip bracketed instructions like [whispers] or [speaks Malayalam]
     text = text.replaceAll(RegExp(r'\[.*?\]'), '');
-    // Strip markdown formatting symbols
     text = text.replaceAll('*', '');
     text = text.replaceAll('#', '');
     return text.trim();
@@ -600,7 +591,10 @@ class _HomeScreenState extends State<HomeScreen>
               SizedBox(
                 width: 40,
                 height: 40,
-                child: CustomPaint(painter: SentosaLogoPainter()),
+                child: Image.asset(
+                  'assets/images/app-icon.png',
+                  fit: BoxFit.contain,
+                ),
               ),
               const SizedBox(width: 14),
               Column(
@@ -1335,7 +1329,7 @@ class _HomeScreenState extends State<HomeScreen>
         titleColor: const Color(0xFF0F2942),
         arrowColor: const Color(0xFF14B8A6),
         accentDashColor: const Color(0xFF5EEAD4),
-      ),     
+      ),
       ActionCardData(
         title: "Principal's\nOffice",
         subtitle: "Get office location,\ncontact or assistance.",
