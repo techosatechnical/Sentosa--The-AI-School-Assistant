@@ -1,8 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'package:sentosa/helpers/models/model.map_data.dart';
+import 'package:sentosa/services/service.storage.dart';
+import 'package:sentosa/helpers/data/data.default_maps.dart';
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key});
+  final String? mapId;
+  const MapScreen({super.key, this.mapId});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -13,6 +18,7 @@ class _MapScreenState extends State<MapScreen>
   late AnimationController _pulseController;
   late Animation<double> _radarAnimation;
   late Animation<double> _opacityAnimation;
+  Future<MapData>? _mapDataFuture;
 
   @override
   void initState() {
@@ -28,6 +34,24 @@ class _MapScreenState extends State<MapScreen>
     _opacityAnimation = Tween<double>(begin: 0.85, end: 0.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeOutCubic),
     );
+
+    _loadMapData();
+  }
+
+  void _loadMapData() {
+    final id = widget.mapId ?? 'principal';
+    _mapDataFuture = AppStorageService().loadMapData(id).then((jsonStr) {
+      if (jsonStr != null) {
+        try {
+          return MapData.fromJson(jsonDecode(jsonStr));
+        } catch (e) {
+          debugPrint('Error parsing map data: $e');
+        }
+      }
+      if (id == 'library') return DefaultMaps.libraryMap;
+      if (id == 'cafeteria') return DefaultMaps.cafeteriaMap;
+      return DefaultMaps.principalMap;
+    });
   }
 
   @override
@@ -42,7 +66,6 @@ class _MapScreenState extends State<MapScreen>
       backgroundColor: const Color(0xFFF8F9FF),
       body: Stack(
         children: [
-          // Background ambient glows
           Positioned(
             top: -100,
             left: -100,
@@ -72,33 +95,46 @@ class _MapScreenState extends State<MapScreen>
             child: Container(color: Colors.transparent),
           ),
 
-          Column(
-            children: [
-              _buildNavHeader(),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
+          FutureBuilder<MapData>(
+            future: _mapDataFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError || !snapshot.hasData) {
+                return const Center(child: Text("Error loading map"));
+              }
+
+              final mapData = snapshot.data!;
+              return Column(
+                children: [
+                  _buildNavHeader(mapData),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                      child: Column(
+                        children: [
+                          _buildNextManeuver(mapData),
+                          const SizedBox(height: 16),
+                          Expanded(child: _buildBlueprintMap(mapData)),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: Column(
-                    children: [
-                      _buildNextManeuver(),
-                      const SizedBox(height: 16),
-                      Expanded(child: _buildBlueprintMap()),
-                    ],
-                  ),
-                ),
-              ),
-              _buildFooter(),
-            ],
+                  _buildFooter(),
+                ],
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNavHeader() {
+  Widget _buildNavHeader(MapData mapData) {
     return Container(
       height: 80,
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -127,7 +163,7 @@ class _MapScreenState extends State<MapScreen>
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade200),
               ),
-              child: Icon(Icons.arrow_back, color: Colors.black),
+              child: const Icon(Icons.arrow_back, color: Colors.black),
             ),
           ),
           Row(
@@ -135,10 +171,10 @@ class _MapScreenState extends State<MapScreen>
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
-                children: const [
+                children: [
                   Text(
-                    "Principal's Office",
-                    style: TextStyle(
+                    mapData.title,
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF0B1C30),
@@ -175,7 +211,7 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  Widget _buildNextManeuver() {
+  Widget _buildNextManeuver(MapData mapData) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -219,10 +255,10 @@ class _MapScreenState extends State<MapScreen>
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     children: [
-                      const Text(
-                        'MANEUVER',
+                      Text(
+                        'DIRECTIONS',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -233,9 +269,9 @@ class _MapScreenState extends State<MapScreen>
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Walk straight along Main Concourse (45m), then turn right into East Executive Corridor to Suite A-102.',
-                    style: TextStyle(
+                  Text(
+                    'Follow the highlighted path to ${mapData.title}',
+                    style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF0B1C30),
@@ -250,7 +286,17 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  Widget _buildBlueprintMap() {
+  Widget _buildBlueprintMap(MapData mapData) {
+    MapPathNode? startNode;
+    MapPathNode? targetNode;
+
+    try {
+      startNode = mapData.pathNodes.firstWhere((n) => n.isStart);
+    } catch (_) {}
+    try {
+      targetNode = mapData.pathNodes.firstWhere((n) => n.isTarget);
+    } catch (_) {}
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -289,204 +335,159 @@ class _MapScreenState extends State<MapScreen>
                     child: Stack(
                       children: [
                         Positioned.fill(
-                          child: CustomPaint(painter: CorridorPainter()),
+                          child: CustomPaint(painter: CorridorPainter(mapData.corridors)),
                         ),
-                        _buildRoom(
-                          80,
-                          150,
-                          210,
-                          290,
-                          'CONFERENCE HALL 1',
-                          'Auditorium & Boardroom',
-                          tag: 'ROOM A-110 • WING 1',
-                        ),
-                        _buildRoom(
-                          80,
-                          550,
-                          210,
-                          200,
-                          'MEDIA HUB & LIBRARY',
-                          'Digital Archive & Silent Study',
-                          tag: 'ROOM A-108',
-                        ),
-                        _buildRoom(
-                          80,
-                          830,
-                          210,
-                          110,
-                          'COURTYARD TERRACE',
-                          'Sentosa Garden Cafe',
-                        ),
-
-                        _buildAtrium(360, 150, 120, 290),
-
-                        _buildRoom(
-                          580,
-                          290,
-                          120,
-                          140,
-                          'VICE PRINCIPAL',
-                          'Student Affairs',
-                          tag: 'SUITE A-104',
-                        ),
-
-                        _buildTargetRoom(770, 150, 250, 290),
-
-                        _buildRoom(
-                          770,
-                          550,
-                          250,
-                          200,
-                          'ELEVATOR CORE A',
-                          'Vertical Transit: L1 to L4',
-                          tag: 'CAMPUS AMENITIES',
-                        ),
-                        _buildRoom(
-                          770,
-                          830,
-                          250,
-                          110,
-                          'SERVICE DESK',
-                          'Visitor Reception Desk',
-                        ),
-
-                        _buildFoyer(410, 840, 240, 100),
+                        
+                        ...mapData.rooms.map((room) {
+                          if (room.type == RoomType.atrium) {
+                            return _buildAtrium(room.x, room.y, room.w, room.h, room.title);
+                          } else if (room.type == RoomType.foyer) {
+                            return _buildFoyer(room.x, room.y, room.w, room.h, room.title, room.subtitle);
+                          } else if (room.type == RoomType.target) {
+                            return _buildTargetRoom(room.x, room.y, room.w, room.h, room.title, room.subtitle, room.tag ?? '');
+                          }
+                          return _buildRoom(room.x, room.y, room.w, room.h, room.title, room.subtitle, tag: room.tag);
+                        }),
 
                         Positioned.fill(
-                          child: CustomPaint(painter: RoutePainter()),
+                          child: CustomPaint(painter: RoutePainter(mapData.pathNodes)),
                         ),
 
-                        Positioned(
-                          left: 530 - 28,
-                          top: 890 - 28,
-                          child: AnimatedBuilder(
-                            animation: _pulseController,
-                            builder: (context, child) {
-                              return Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Opacity(
-                                    opacity: _opacityAnimation.value,
-                                    child: Transform.scale(
-                                      scale: _radarAnimation.value,
-                                      child: Container(
-                                        width: 56,
-                                        height: 56,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Color(0x592563EB),
+                        if (startNode != null)
+                          Positioned(
+                            left: startNode.x - 28,
+                            top: startNode.y - 28,
+                            child: AnimatedBuilder(
+                              animation: _pulseController,
+                              builder: (context, child) {
+                                return Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Opacity(
+                                      opacity: _opacityAnimation.value,
+                                      child: Transform.scale(
+                                        scale: _radarAnimation.value,
+                                        child: Container(
+                                          width: 56,
+                                          height: 56,
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Color(0x592563EB),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  Container(
-                                    width: 16,
-                                    height: 16,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF2563EB),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 3,
+                                    Container(
+                                      width: 16,
+                                      height: 16,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2563EB),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 3,
+                                        ),
                                       ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+
+                        if (startNode != null)
+                          Positioned(
+                            left: startNode.x - 90,
+                            top: startNode.y - 45,
+                            child: Container(
+                              width: 180,
+                              height: 26,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0B1C30),
+                                borderRadius: BorderRadius.circular(13),
+                                boxShadow: const [
+                                  BoxShadow(color: Colors.black12, blurRadius: 4),
+                                ],
+                              ),
+                              child: const Text(
+                                "📍 You Are Here",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        if (targetNode != null)
+                          Positioned(
+                            left: targetNode.x - 24,
+                            top: targetNode.y - 24,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0x402563EB),
+                                  ),
+                                ),
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF004AC6),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2.5,
+                                    ),
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.flag,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        if (targetNode != null)
+                          Positioned(
+                            left: targetNode.x + 14,
+                            top: targetNode.y - 46,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF004AC6),
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: const [
+                                  BoxShadow(color: Colors.black12, blurRadius: 4),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "🎯 ${mapData.title}",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ],
-                              );
-                            },
-                          ),
-                        ),
-
-                        Positioned(
-                          left: 530 - 90,
-                          top: 890 - 45,
-                          child: Container(
-                            width: 180,
-                            height: 26,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0B1C30),
-                              borderRadius: BorderRadius.circular(13),
-                              boxShadow: const [
-                                BoxShadow(color: Colors.black12, blurRadius: 4),
-                              ],
-                            ),
-                            child: const Text(
-                              "📍 You Are Here",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        ),
-
-                        Positioned(
-                          left: 768 - 24,
-                          top: 240 - 24,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color(0x402563EB),
-                                ),
-                              ),
-                              Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF004AC6),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2.5,
-                                  ),
-                                ),
-                              ),
-                              const Icon(
-                                Icons.flag,
-                                color: Colors.white,
-                                size: 14,
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        Positioned(
-                          left: 768 + 14,
-                          top: 240 - 46,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF004AC6),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: const [
-                                BoxShadow(color: Colors.black12, blurRadius: 4),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text(
-                                  "🎯 Principal's Office",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -530,7 +531,7 @@ class _MapScreenState extends State<MapScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (tag != null) ...[
+            if (tag != null && tag.isNotEmpty) ...[
               Text(
                 tag,
                 textAlign: TextAlign.center,
@@ -551,19 +552,21 @@ class _MapScreenState extends State<MapScreen>
                 color: Color(0xFF0B1C30),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF434655)),
-            ),
+            if (subtitle.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 10, color: Color(0xFF434655)),
+              ),
+            ]
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAtrium(double x, double y, double w, double h) {
+  Widget _buildAtrium(double x, double y, double w, double h, String title) {
     return Positioned(
       left: x,
       top: y,
@@ -577,11 +580,11 @@ class _MapScreenState extends State<MapScreen>
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Text(
-              "CENTRAL\nATRIUM",
+              title,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF004AC6),
@@ -593,7 +596,7 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  Widget _buildFoyer(double x, double y, double w, double h) {
+  Widget _buildFoyer(double x, double y, double w, double h, String title, String subtitle) {
     return Positioned(
       left: x,
       top: y,
@@ -607,29 +610,31 @@ class _MapScreenState extends State<MapScreen>
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Text(
-              "ENTRANCE FOYER & TURNSTILES",
+              title,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF0B1C30),
               ),
             ),
-            SizedBox(height: 4),
-            Text(
-              "Main South Security Gate & Station #01",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, color: Color(0xFF434655)),
-            ),
+            if (subtitle.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 10, color: Color(0xFF434655)),
+              ),
+            ]
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTargetRoom(double x, double y, double w, double h) {
+  Widget _buildTargetRoom(double x, double y, double w, double h, String title, String subtitle, String tag) {
     return Positioned(
       left: x,
       top: y,
@@ -651,35 +656,39 @@ class _MapScreenState extends State<MapScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFDBE1FF),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'EXECUTIVE SUITE A-102',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF00174B),
+            if (tag.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDBE1FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  tag,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF00174B),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              "PRINCIPAL'S OFFICE",
-              style: TextStyle(
+              const SizedBox(height: 12),
+            ],
+            Text(
+              title,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF0B1C30),
               ),
             ),
-            const SizedBox(height: 4),
-            const Text(
-              "Administration & Governance",
-              style: TextStyle(fontSize: 12, color: Color(0xFF434655)),
-            ),
+            if (subtitle.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF434655)),
+              ),
+            ]
           ],
         ),
       ),
@@ -721,7 +730,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
- 
   Widget _buildFooter() {
     return Container(
       height: 48,
@@ -783,6 +791,10 @@ class GridPainter extends CustomPainter {
 }
 
 class CorridorPainter extends CustomPainter {
+  final List<MapCorridor> corridors;
+
+  CorridorPainter(this.corridors);
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -794,55 +806,58 @@ class CorridorPainter extends CustomPainter {
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
-    // Draw horizontal corridors
-    canvas.drawRect(const Rect.fromLTWH(80, 60, 940, 70), paint);
-    canvas.drawRect(const Rect.fromLTWH(80, 60, 940, 70), borderPaint);
+    for (final corridor in corridors) {
+      final rect = Rect.fromLTWH(corridor.x, corridor.y, corridor.w, corridor.h);
+      canvas.drawRect(rect, paint);
+      canvas.drawRect(rect, borderPaint);
+    }
 
-    canvas.drawRect(const Rect.fromLTWH(480, 205, 460, 70), paint);
-    canvas.drawRect(const Rect.fromLTWH(480, 205, 460, 70), borderPaint);
-
-    canvas.drawRect(const Rect.fromLTWH(80, 460, 940, 70), paint);
-    canvas.drawRect(const Rect.fromLTWH(80, 460, 940, 70), borderPaint);
-
-    canvas.drawRect(const Rect.fromLTWH(80, 770, 940, 80), paint);
-    canvas.drawRect(const Rect.fromLTWH(80, 770, 940, 80), borderPaint);
-
-    // Draw vertical corridors
-    canvas.drawRect(const Rect.fromLTWH(290, 60, 70, 790), paint);
-    canvas.drawRect(const Rect.fromLTWH(290, 60, 70, 790), borderPaint);
-
-    canvas.drawRect(const Rect.fromLTWH(480, 60, 100, 860), paint);
-    canvas.drawRect(const Rect.fromLTWH(480, 60, 100, 860), borderPaint);
-
-    canvas.drawRect(const Rect.fromLTWH(700, 60, 70, 790), paint);
-    canvas.drawRect(const Rect.fromLTWH(700, 60, 70, 790), borderPaint);
-
-    // Seamless junction overlaps
+    // Since we simplified the rendering for dynamically loaded corridors,
+    // the seamless junction overlaps are automatically drawn without borders 
+    // by filling intersections, but we'll stick to a simpler render method for the dynamic version.
+    // Ideally we would compute intersections and draw them with `fillPaint`, 
+    // but for the sake of the builder, the default borders will be visible.
+    // If seamless overlaps are strictly needed, we can re-implement them by computing Rect intersections.
+    
     final fillPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
-    canvas.drawRect(const Rect.fromLTWH(481, 206, 98, 68), fillPaint);
-    canvas.drawRect(const Rect.fromLTWH(701, 206, 68, 68), fillPaint);
-    canvas.drawRect(const Rect.fromLTWH(481, 461, 98, 68), fillPaint);
-    canvas.drawRect(const Rect.fromLTWH(291, 461, 68, 68), fillPaint);
-    canvas.drawRect(const Rect.fromLTWH(701, 461, 68, 68), fillPaint);
-    canvas.drawRect(const Rect.fromLTWH(481, 771, 98, 78), fillPaint);
-    canvas.drawRect(const Rect.fromLTWH(291, 771, 68, 78), fillPaint);
-    canvas.drawRect(const Rect.fromLTWH(701, 771, 68, 78), fillPaint);
+      
+    // Naive O(N^2) intersection fill to restore seamless corridors
+    for (int i = 0; i < corridors.length; i++) {
+      for (int j = i + 1; j < corridors.length; j++) {
+        final r1 = Rect.fromLTWH(corridors[i].x, corridors[i].y, corridors[i].w, corridors[i].h);
+        final r2 = Rect.fromLTWH(corridors[j].x, corridors[j].y, corridors[j].w, corridors[j].h);
+        final intersection = r1.intersect(r2);
+        if (intersection.width > 0 && intersection.height > 0) {
+          // Fill the intersection, slightly deflated to overwrite borders
+          canvas.drawRect(intersection.deflate(-1.0), fillPaint);
+        }
+      }
+    }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CorridorPainter oldDelegate) => true;
 }
 
 class RoutePainter extends CustomPainter {
+  final List<MapPathNode> nodes;
+
+  RoutePainter(this.nodes);
+
   @override
   void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(530, 890)
-      ..lineTo(530, 250)
-      ..quadraticBezierTo(530, 240, 540, 240)
-      ..lineTo(760, 240);
+    if (nodes.isEmpty) return;
+
+    final path = Path();
+    path.moveTo(nodes.first.x, nodes.first.y);
+
+    for (int i = 1; i < nodes.length; i++) {
+      // Very basic pathing: just connect the dots with straight lines for now, 
+      // or you can implement bezier logic if you have control points.
+      path.lineTo(nodes[i].x, nodes[i].y);
+    }
 
     // Glow
     canvas.drawPath(
@@ -874,10 +889,11 @@ class RoutePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
 
-    _drawCp(canvas, 530, 770, 4, cpPaint, cpBorder);
-    _drawCp(canvas, 530, 495, 4.5, cpPaint, cpBorder);
-    _drawCp(canvas, 530, 240, 5, cpPaint, cpBorder);
-    _drawCp(canvas, 760, 240, 4.5, cpPaint, cpBorder);
+    for (final node in nodes) {
+      if (node.isCheckpoint || node.isStart || node.isTarget) {
+        _drawCp(canvas, node.x, node.y, 4.5, cpPaint, cpBorder);
+      }
+    }
   }
 
   void _drawCp(
@@ -893,5 +909,5 @@ class RoutePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant RoutePainter oldDelegate) => true;
 }

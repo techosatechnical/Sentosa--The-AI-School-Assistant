@@ -183,11 +183,23 @@ class HomeQuickActions extends StatelessWidget {
               context: context,
               builder: (_) => const AdmissionAssistantDialog(),
             );
-          } else if (card.title == "Principal's\nOffice" ||
-                     card.title == "Where is\nthe library?" ||
-                     card.title == "Cafeteria") {
+          } else if (card.title == "Principal's\nOffice") {
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MapScreen()),
+              MaterialPageRoute(
+                builder: (_) => const MapScreen(mapId: 'principal'),
+              ),
+            );
+          } else if (card.title == "Where is\nthe library?") {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const MapScreen(mapId: 'library'),
+              ),
+            );
+          } else if (card.title == "Cafeteria") {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const MapScreen(mapId: 'cafeteria'),
+              ),
             );
           } else {
             onRobotReaction();

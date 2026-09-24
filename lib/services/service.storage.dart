@@ -58,4 +58,28 @@ class AppStorageService {
 
     return savedFile.path;
   }
+
+  Future<Directory> getMapsDirectory() async {
+    final appDir = await getAppDirectory();
+    final mapsDir = Directory(p.join(appDir.path, 'maps'));
+    if (!await mapsDir.exists()) {
+      await mapsDir.create(recursive: true);
+    }
+    return mapsDir;
+  }
+
+  Future<void> saveMapData(String id, String jsonString) async {
+    final mapsDir = await getMapsDirectory();
+    final file = File(p.join(mapsDir.path, '$id.json'));
+    await file.writeAsString(jsonString);
+  }
+
+  Future<String?> loadMapData(String id) async {
+    final mapsDir = await getMapsDirectory();
+    final file = File(p.join(mapsDir.path, '$id.json'));
+    if (await file.exists()) {
+      return await file.readAsString();
+    }
+    return null;
+  }
 }

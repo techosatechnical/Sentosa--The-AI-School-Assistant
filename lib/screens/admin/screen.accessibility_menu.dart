@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sentosa/screens/admin/screen.admission_details.dart';
+import 'package:sentosa/screens/admin/screen.maps_management.dart';
 import 'package:sentosa/widgets/widget.actioncard.dart';
 import 'package:sentosa/widgets/widget.painters.dart';
 
@@ -124,6 +125,69 @@ class AccessibilityMenuScreen extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (context) => const AdmissionDetailsScreen(),
+            ),
+          );
+        },
+      ),
+      (
+        data: ActionCardData(
+          title: "Principal's\nOffice",
+          subtitle: "Get office location,\ncontact or assistance.",
+          bgColor: const Color(0xFFF3EFFF),
+          hoverColor: const Color(0xFFE8E1FD),
+          borderColor: const Color(0xFFE5DEFB),
+          titleColor: const Color(0xFF0F2942),
+          arrowColor: const Color(0xFF818CF8),
+          accentDashColor: const Color(0xFFC4B5FD),
+        ),
+        painter: PrincipalGraphicPainter(const Color(0xFFC4B5FD)),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MapsManagementScreen(mapId: 'principal'),
+            ),
+          );
+        },
+      ),
+      (
+        data: ActionCardData(
+          title: "Where is\nthe library?",
+          subtitle: "Find books, study areas\nand more.",
+          bgColor: const Color(0xFFEBF5FF),
+          hoverColor: const Color(0xFFDCEEFE),
+          borderColor: const Color(0xFFD6EBFF),
+          titleColor: const Color(0xFF0F2942),
+          arrowColor: const Color(0xFF38BDF8),
+          accentDashColor: const Color(0xFF93C5FD),
+        ),
+        painter: MapGraphicPainter(const Color(0xFF93C5FD)),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MapsManagementScreen(mapId: 'library'),
+            ),
+          );
+        },
+      ),
+      (
+        data: ActionCardData(
+          title: "Cafeteria",
+          subtitle: "Check meal timings,\nmenu and location.",
+          bgColor: const Color(0xFFEDFAF3),
+          hoverColor: const Color(0xFFDCF6E8),
+          borderColor: const Color(0xFFD1F2E2),
+          titleColor: const Color(0xFF0F2942),
+          arrowColor: const Color(0xFF10B981),
+          accentDashColor: const Color(0xFF86EFAC),
+        ),
+        painter: CafeteriaGraphicPainter(const Color(0xFF86EFAC)),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MapsManagementScreen(mapId: 'cafeteria'),
             ),
           );
         },
