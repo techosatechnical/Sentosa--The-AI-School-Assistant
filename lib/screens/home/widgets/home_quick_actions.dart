@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sentosa/widgets/widgets.dart';
 import 'package:sentosa/widgets/widget.admissiondesk.dart';
+import 'package:sentosa/screens/map/screen.maps.dart';
 
 class HomeQuickActions extends StatelessWidget {
   final VoidCallback onTalkToSentosa;
@@ -181,6 +182,12 @@ class HomeQuickActions extends StatelessWidget {
             showDialog(
               context: context,
               builder: (_) => const AdmissionAssistantDialog(),
+            );
+          } else if (card.title == "Principal's\nOffice" ||
+                     card.title == "Where is\nthe library?" ||
+                     card.title == "Cafeteria") {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const MapScreen()),
             );
           } else {
             onRobotReaction();
