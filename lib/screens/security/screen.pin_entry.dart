@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'package:sentosa/screens/screen.accessibility_menu.dart';
-import 'package:sentosa/screens/screen.change_pin.dart';
+import 'package:sentosa/screens/admin/screen.accessibility_menu.dart';
+import 'package:sentosa/screens/security/screen.change_pin.dart';
 import 'package:sentosa/services/service.config.dart';
 
 class PinEntryScreen extends StatefulWidget {

@@ -4,10 +4,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sentosa/services/services.dart';
 import 'package:sentosa/helpers/enums/enums.dart';
-import 'package:sentosa/widgets/widgets.dart';
-import 'package:sentosa/widgets/widget.admissiondesk.dart';
-import 'package:sentosa/screens/screen.pin_entry.dart';
-
+import 'package:sentosa/screens/home/widgets/home_top_header.dart';
+import 'package:sentosa/screens/home/widgets/home_bottom_bar.dart';
+import 'package:sentosa/screens/home/widgets/home_quick_actions.dart';
+import 'package:sentosa/screens/home/widgets/home_speech_bubble.dart';
+import 'package:sentosa/screens/home/widgets/home_sentosa_mic.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -494,7 +495,7 @@ class _HomeScreenState extends State<HomeScreen>
                     bottom: false,
                     child: Column(
                       children: [
-                        _buildTopHeader(),
+                        HomeTopHeader(currentTime: _currentTime),
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, constraints) {
@@ -517,7 +518,21 @@ class _HomeScreenState extends State<HomeScreen>
                                         SizedBox(height: 60 * heroScale),
                                         _buildRobotHeadHeroSection(heroScale),
                                         SizedBox(height: 8 * heroScale),
-                                        _buildSpeechBubble(),
+                                        HomeSpeechBubble(
+                                          aiResponse: _getLatestAIResponse(),
+                                          currentGreeting: _greetings[_greetingIndex],
+                                          isSpeaking: _isSpeaking,
+                                          waveAnimation: _waveController,
+                                          onTap: () {
+                                            if (_getLatestAIResponse().isNotEmpty) {
+                                              setState(() {
+                                                _messages.clear();
+                                                _currentModelTurn = "";
+                                              });
+                                            }
+                                            _triggerRobotReaction();
+                                          },
+                                        ),
                                         SizedBox(height: 45 * heroScale),
                                         AnimatedSwitcher(
                                           duration: const Duration(
@@ -548,18 +563,34 @@ class _HomeScreenState extends State<HomeScreen>
                                                 );
                                               },
                                           child: _isMicModeActive
-                                              ? _buildSentosaMicSection()
-                                              : Column(
-                                                  key: const ValueKey(
-                                                    'QuickActions',
-                                                  ),
-                                                  children: [
-                                                    _buildQuickActionsHeader(),
-                                                    SizedBox(
-                                                      height: 8 * heroScale,
-                                                    ),
-                                                    _buildQuickActionsGrid(),
-                                                  ],
+                                              ? HomeSentosaMicSection(
+                                                  isListening: _isListening,
+                                                  isSpeaking: _isSpeaking,
+                                                  statusText: _statusText,
+                                                  pulseAnimation: _rayPulseController,
+                                                  waveAnimation: _waveController,
+                                                  onBackTap: () async {
+                                                    if (_isListening) {
+                                                      await _toggleListening();
+                                                    }
+                                                    _wakeWordService.stop();
+                                                    await Future.delayed(const Duration(milliseconds: 100));
+                                                    if (mounted) {
+                                                      setState(() {
+                                                        _isMicModeActive = false;
+                                                      });
+                                                    }
+                                                  },
+                                                  onMicTap: _toggleListening,
+                                                )
+                                              : HomeQuickActions(
+                                                  onTalkToSentosa: () {
+                                                    _wakeWordService.start();
+                                                    setState(() {
+                                                      _isMicModeActive = true;
+                                                    });
+                                                  },
+                                                  onRobotReaction: _triggerRobotReaction,
                                                 ),
                                         ),
                                         SizedBox(height: 16 * heroScale),
@@ -571,7 +602,7 @@ class _HomeScreenState extends State<HomeScreen>
                             },
                           ),
                         ),
-                        _buildPersistentBottomBar(),
+                        const HomeBottomBar(),
                       ],
                     ),
                   ),
@@ -584,162 +615,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildTopHeader() {
-    final hour = _currentTime.hour % 12 == 0 ? 12 : _currentTime.hour % 12;
-    final minute = _currentTime.minute.toString().padLeft(2, '0');
-    final period = _currentTime.hour >= 12 ? 'PM' : 'AM';
-    final timeStr = "$hour:$minute $period";
-
-    final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final dateStr =
-        "${weekdays[_currentTime.weekday - 1]}, ${_currentTime.day} ${months[_currentTime.month - 1]} ${_currentTime.year}";
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 14, 32, 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              SizedBox(
-                width: 40,
-                height: 40,
-                child: Image.asset(
-                  'assets/images/app-icon.png',
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Sentosa",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F2942),
-                      letterSpacing: -0.6,
-                      height: 1.0,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    "Your School Assistant",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF0F2942).withValues(alpha: 0.55),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-
-          Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    timeStr,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F2942),
-                      letterSpacing: -0.3,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    dateStr,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF0F2942).withValues(alpha: 0.55),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 16),
-              Container(width: 1.5, height: 28, color: const Color(0xFFCBD5E1)),
-              const SizedBox(width: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFBAE6FD).withValues(alpha: 0.6),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF0F2942).withValues(alpha: 0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.cloud_done_rounded,
-                      size: 15,
-                      color: Color(0xFF0284C7),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF10B981),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0xFF6EE7B7),
-                            blurRadius: 5,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      "Cloud Connected",
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF334155),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildRobotHeadHeroSection(double scale) {
     return AnimatedBuilder(
@@ -1052,160 +927,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildSpeechBubble() {
-    final aiResponse = _getLatestAIResponse();
-    final hasResponse = aiResponse.isNotEmpty;
-    final currentGreeting = _greetings[_greetingIndex];
-
-    return GestureDetector(
-      onTap: () {
-        if (hasResponse) {
-          setState(() {
-            _messages.clear();
-            _currentModelTurn = "";
-          });
-        }
-        _triggerRobotReaction();
-      },
-      child: Stack(
-        alignment: Alignment.topCenter,
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            top: -6,
-            child: Transform.rotate(
-              angle: math.pi / 4,
-              child: Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.98),
-                  border: const Border(
-                    top: BorderSide(color: Color(0xFFE0F2FE)),
-                    left: BorderSide(color: Color(0xFFE0F2FE)),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(maxWidth: 420),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.96),
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF0F2942).withValues(alpha: 0.08),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-              border: Border.all(
-                color: hasResponse
-                    ? (_isSpeaking
-                          ? const Color(0xFFA855F7).withValues(alpha: 0.4)
-                          : const Color(0xFF38BDF8).withValues(alpha: 0.4))
-                    : const Color(0xFFE0F2FE),
-                width: 1.5,
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (!hasResponse) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        currentGreeting['hi'] ?? 'Hi!',
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF0F2942),
-                          letterSpacing: -0.6,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      AnimatedBuilder(
-                        animation: _waveController,
-                        builder: (context, child) {
-                          final waveAngle =
-                              math.sin(_waveController.value * math.pi * 2) *
-                              0.25;
-                          return Transform.rotate(
-                            angle: waveAngle,
-                            child: const Text(
-                              "👋",
-                              style: TextStyle(fontSize: 24),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    currentGreeting['text'] ?? '',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF334155),
-                      height: 1.35,
-                    ),
-                  ),
-                ] else ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _isSpeaking ? "Sentosa Speaking..." : "Sentosa",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: _isSpeaking
-                              ? const Color(0xFFA855F7)
-                              : const Color(0xFF0F2942),
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        Icons.auto_awesome,
-                        size: 18,
-                        color: _isSpeaking
-                            ? const Color(0xFFA855F7)
-                            : const Color(0xFF38BDF8),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 160),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Text(
-                        aiResponse,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F2942),
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   String _getLatestAIResponse() {
     if (_messages.isEmpty) return "";
@@ -1217,446 +938,4 @@ class _HomeScreenState extends State<HomeScreen>
     return "";
   }
 
-  Widget _buildSentosaMicSection() {
-    final activeColor = _isSpeaking
-        ? const Color(0xFFA855F7)
-        : (_isListening ? const Color(0xFF38BDF8) : const Color(0xFF10B981));
-
-    return Container(
-      key: const ValueKey('MicSection'),
-      constraints: const BoxConstraints(minHeight: 400),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.keyboard_backspace_rounded,
-                  color: Color(0xFF0F2942),
-                  size: 28,
-                ),
-                onPressed: () async {
-                  if (_isListening) {
-                    await _toggleListening();
-                  }
-                  _wakeWordService.stop();
-                  await Future.delayed(const Duration(milliseconds: 100));
-                  if (mounted) {
-                    setState(() {
-                      _isMicModeActive = false;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(width: 8),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "TALK TO SENTOSA",
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F2942),
-                      letterSpacing: -0.6,
-                    ),
-                  ),
-                  SizedBox(height: 3),
-                  Text(
-                    "Your School's AI assistant.",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 75),
-          StatusBadge(
-            isListening: _isListening,
-            isSpeaking: _isSpeaking,
-            activeColor: activeColor,
-          ),
-          const SizedBox(height: 14),
-          Text(
-            _statusText,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14.5,
-              color: const Color(0xFF0F2942).withValues(alpha: 0.7),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 24),
-          MicButton(
-            size: 400.0,
-            pulseAnimation: _rayPulseController,
-            waveAnimation: _waveController,
-            isListening: _isListening,
-            isSpeaking: _isSpeaking,
-            activeColor: activeColor,
-            onTap: _toggleListening,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActionsHeader() {
-    return const Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 30,
-          height: 30,
-          child: Icon(Icons.auto_awesome, size: 28, color: Color(0xFF38BDF8)),
-        ),
-        SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Quick Actions",
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF0F2942),
-                letterSpacing: -0.6,
-              ),
-            ),
-            SizedBox(height: 3),
-            Text(
-              "Tap on a question or choose an option below.",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF64748B),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCardGraphic(int index, Color dashColor) {
-    CustomPainter painter;
-    switch (index) {
-      case 0:
-        painter = TalkGraphicPainter(dashColor);
-        break;
-      case 1:
-        painter = AdmissionGraphicPainter(dashColor);
-        break;
-      case 2:
-        painter = PrincipalGraphicPainter(dashColor);
-        break;
-      case 3:
-        painter = MapGraphicPainter(dashColor);
-        break;
-      case 4:
-      default:
-        painter = CafeteriaGraphicPainter(dashColor);
-        break;
-    }
-    return SizedBox(
-      width: 76,
-      height: 72,
-      child: CustomPaint(painter: painter),
-    );
-  }
-
-  Widget _buildQuickActionsGrid() {
-    final cards = [
-      ActionCardData(
-        title: "Talk to Sentosa",
-        subtitle: "Ask anything\n(or just say it!).",
-        bgColor: const Color(0xFFF1EFFF),
-        hoverColor: const Color(0xFFE4E0FD),
-        borderColor: const Color(0xFFE3DEFA),
-        titleColor: const Color(0xFF0F2942),
-        arrowColor: const Color(0xFF8B5CF6),
-        accentDashColor: const Color(0xFFC4B5FD),
-      ),
-      ActionCardData(
-        title: "Mini Admission\nAssistant",
-        subtitle: "Quick admission process\nwith photo & details.",
-        bgColor: const Color(0xFFE6F9F9),
-        hoverColor: const Color(0xFFD3F5F5),
-        borderColor: const Color(0xFFCEF4F4),
-        titleColor: const Color(0xFF0F2942),
-        arrowColor: const Color(0xFF14B8A6),
-        accentDashColor: const Color(0xFF5EEAD4),
-      ),
-      ActionCardData(
-        title: "Principal's\nOffice",
-        subtitle: "Get office location,\ncontact or assistance.",
-        bgColor: const Color(0xFFF3EFFF),
-        hoverColor: const Color(0xFFE8E1FD),
-        borderColor: const Color(0xFFE5DEFB),
-        titleColor: const Color(0xFF0F2942),
-        arrowColor: const Color(0xFF818CF8),
-        accentDashColor: const Color(0xFFC4B5FD),
-      ),
-      ActionCardData(
-        title: "Where is\nthe library?",
-        subtitle: "Find books, study areas\nand more.",
-        bgColor: const Color(0xFFEBF5FF),
-        hoverColor: const Color(0xFFDCEEFE),
-        borderColor: const Color(0xFFD6EBFF),
-        titleColor: const Color(0xFF0F2942),
-        arrowColor: const Color(0xFF38BDF8),
-        accentDashColor: const Color(0xFF93C5FD),
-      ),
-      ActionCardData(
-        title: "Cafeteria",
-        subtitle: "Check meal timings,\nmenu and location.",
-        bgColor: const Color(0xFFEDFAF3),
-        hoverColor: const Color(0xFFDCF6E8),
-        borderColor: const Color(0xFFD1F2E2),
-        titleColor: const Color(0xFF0F2942),
-        arrowColor: const Color(0xFF10B981),
-        accentDashColor: const Color(0xFF86EFAC),
-      ),
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth >= 768 ? 4 : 2;
-        final totalSpacing = 16.0 * (crossAxisCount - 1);
-        final itemWidth =
-            (constraints.maxWidth - totalSpacing) / crossAxisCount;
-        const desiredItemHeight = 252.0;
-        final childAspectRatio = itemWidth / desiredItemHeight;
-
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: cards.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: childAspectRatio,
-          ),
-          itemBuilder: (context, index) {
-            final card = cards[index];
-            return _buildTouchCard(card, index);
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildTouchCard(ActionCardData card, int index) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          if (card.title == "Talk to Sentosa") {
-            _wakeWordService.start();
-            setState(() {
-              _isMicModeActive = true;
-            });
-          } else if (card.title == "Mini Admission\nAssistant") {
-            showDialog(
-              context: context,
-              builder: (_) => const AdmissionAssistantDialog(),
-            );
-          } else {
-            _triggerRobotReaction();
-          }
-        },
-        borderRadius: BorderRadius.circular(24),
-        splashColor: card.arrowColor.withValues(alpha: 0.18),
-        highlightColor: card.hoverColor.withValues(alpha: 0.6),
-        child: Container(
-          decoration: BoxDecoration(
-            color: card.bgColor,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: card.borderColor, width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF0F2942).withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 18, 14, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      height: 72,
-                      child: Center(
-                        child: _buildCardGraphic(index, card.accentDashColor),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    Text(
-                      card.title,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16.5,
-                        fontWeight: FontWeight.w900,
-                        color: card.titleColor,
-                        height: 1.2,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-
-                    Text(
-                      card.subtitle,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF64748B),
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              Positioned(
-                right: 14,
-                bottom: 14,
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: card.arrowColor,
-                    boxShadow: [
-                      BoxShadow(
-                        color: card.arrowColor.withValues(alpha: 0.4),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 16,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPersistentBottomBar() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFE8F3FD), Color(0xFFDBEDFD)],
-        ),
-        border: Border(
-          top: BorderSide(
-            color: const Color(0xFFBAE6FD).withValues(alpha: 0.8),
-            width: 1.5,
-          ),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.school_rounded, size: 26, color: Color(0xFF1E40AF)),
-              SizedBox(width: 12),
-              Text(
-                "A Smarter School",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E3A8A),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                child: Text(
-                  "✦",
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0284C7),
-                  ),
-                ),
-              ),
-              Text(
-                "A Brighter Future",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E3A8A),
-                ),
-              ),
-            ],
-          ),
-
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PinEntryScreen(),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.accessibility_new_rounded,
-                      size: 22,
-                      color: Color(0xFF1D4ED8),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      "Accessibility Mode",
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1D4ED8),
-                      ),
-                    ),
-                    SizedBox(width: 4),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 20,
-                      color: Color(0xFF1D4ED8),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

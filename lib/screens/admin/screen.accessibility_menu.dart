@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sentosa/screens/screen.admission_details.dart';
+import 'package:sentosa/screens/admin/screen.admission_details.dart';
 import 'package:sentosa/widgets/widget.actioncard.dart';
 import 'package:sentosa/widgets/widget.painters.dart';
 
