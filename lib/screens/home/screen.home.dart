@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen>
       'text': 'I’m Sentosa, your school assistant.\nHow can I help you today?',
     },
     {
-      'hi': 'I\'m listening! ✨',
+      'hi': 'Welcome back! ✨',
       'text': 'Ask me anything about classes,\nrooms, or events!',
     },
     {
@@ -126,6 +126,10 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _isListening = state != ConversationState.standby;
           _isSpeaking = state == ConversationState.speaking;
+          if (state == ConversationState.standby) {
+            _messages.clear();
+            _currentModelTurn = "";
+          }
         });
       }
     };

@@ -4,8 +4,7 @@ import 'dart:math' as java_math;
 import 'package:camera_platform_interface/camera_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_soloud/flutter_soloud.dart';
 import '../services/service.admission.dart';
 import '../services/service.storage.dart';
 
@@ -56,7 +55,7 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
     (index) => 'Grade ${index + 1}',
   );
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final SoLoud _soloud = SoLoud.instance;
 
   String _formatDate(DateTime date) {
     final months = [
@@ -145,7 +144,7 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
       CameraPlatform.instance.dispose(_cameraId);
     }
     _progressController.dispose();
-    _audioPlayer.dispose();
+    // _soloud instance is managed globally, no need to dispose here.
     super.dispose();
   }
 
@@ -195,7 +194,10 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
     try {
       final random = java_math.Random();
       final index = random.nextInt(5) + 1;
-      await _audioPlayer.play(AssetSource('audio/greeting_$index.wav'));
+      final source = await _soloud.loadAsset(
+        'assets/audio/greeting_$index.wav',
+      );
+      _soloud.play(source);
     } catch (e) {
       debugPrint("Greeting Audio Failed (Non-blocking): $e");
     }

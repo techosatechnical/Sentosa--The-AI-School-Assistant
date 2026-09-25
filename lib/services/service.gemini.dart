@@ -1,30 +1,27 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:record/record.dart';
 import 'package:sentosa/helpers/constants/constants.dart';
 import 'package:sentosa/helpers/data/data.sentosa.dart';
 import 'package:sentosa/helpers/enums/enums.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:sentosa/helpers/functions/functions.dart';
 import 'package:sentosa/services/services.dart';
 
 class GeminiService {
   WebSocketChannel? _channel;
   final AudioRecorder _audioRecorder = AudioRecorder();
   StreamSubscription? _audioStreamSubscription;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final SoLoud _soloud = SoLoud.instance;
+  AudioSource? _activeStream;
+  SoundHandle? _activeSoundHandle;
 
-  final BytesBuilder _turnBuffer = BytesBuilder();
-  final List<Uint8List> _playbackQueue = [];
   bool _isPlaying = false;
   bool _isModelResponding = false;
   bool _isMicrophoneLocked = false;
   int _audioChunkCount = 0;
   Timer? _inactivityTimer;
   Timer? _gracePeriodTimer;
-  Timer? _audioIdleFlushTimer;
 
   ConversationState _conversationState = ConversationState.standby;
 
@@ -40,9 +37,16 @@ class GeminiService {
   ConversationState get conversationState => _conversationState;
 
   GeminiService() {
-    _audioPlayer.onPlayerComplete.listen((_) {
-      _playNextInQueue();
-    });
+    _initAudio();
+  }
+
+  Future<void> _initAudio() async {
+    try {
+      await _soloud.init();
+      logger.i("SoLoud engine initialized successfully");
+    } catch (e, stack) {
+      logger.e("Failed to initialize SoLoud", error: e, stackTrace: stack);
+    }
   }
 
   void _setConversationState(ConversationState state) {
@@ -63,7 +67,9 @@ class GeminiService {
     _inactivityTimer?.cancel();
     _inactivityTimer = Timer(GeminiConstants.inactivityTimeout, () {
       if (_conversationState == ConversationState.active && !_isPlaying) {
-        logger.i("Inactivity timeout (${GeminiConstants.inactivityTimeout.inSeconds}s). Returning to Standby mode.");
+        logger.i(
+          "Inactivity timeout (${GeminiConstants.inactivityTimeout.inSeconds}s). Returning to Standby mode.",
+        );
         disconnect();
       }
     });
@@ -95,7 +101,9 @@ class GeminiService {
     }
 
     final setupMessage = GeminiConstants.getSetupMessage();
-    logger.i("Sending Gemini setup configuration for model: ${GeminiConstants.geminiModel}");
+    logger.i(
+      "Sending Gemini setup configuration for model: ${GeminiConstants.geminiModel}",
+    );
     _channel!.sink.add(jsonEncode(setupMessage));
 
     _channel!.stream.listen(
@@ -155,9 +163,12 @@ class GeminiService {
   }
 
   void interrupt() {
-    if (_isPlaying || _conversationState == ConversationState.speaking || _isModelResponding) {
-      logger.i("Intentional user interrupt triggered via voice command. Stopping speech immediately.");
-      _audioIdleFlushTimer?.cancel();
+    if (_isPlaying ||
+        _conversationState == ConversationState.speaking ||
+        _isModelResponding) {
+      logger.i(
+        "Intentional user interrupt triggered via voice command. Stopping speech immediately.",
+      );
       _gracePeriodTimer?.cancel();
       _stopPlayback();
       _isModelResponding = false;
@@ -168,7 +179,7 @@ class GeminiService {
     }
   }
 
-  void _handleIncomingMessage(dynamic rawMessage) {
+  Future<void> _handleIncomingMessage(dynamic rawMessage) async {
     try {
       final String text = rawMessage is List<int>
           ? utf8.decode(rawMessage)
@@ -192,13 +203,16 @@ class GeminiService {
         String? outputTranscriptionText;
         if (serverContent['outputTranscription'] != null &&
             serverContent['outputTranscription']['text'] != null) {
-          outputTranscriptionText = serverContent['outputTranscription']['text'] as String;
+          outputTranscriptionText =
+              serverContent['outputTranscription']['text'] as String;
         } else if (serverContent['outputAudioTranscription'] != null &&
             serverContent['outputAudioTranscription']['text'] != null) {
-          outputTranscriptionText = serverContent['outputAudioTranscription']['text'] as String;
+          outputTranscriptionText =
+              serverContent['outputAudioTranscription']['text'] as String;
         }
 
-        if (outputTranscriptionText != null && outputTranscriptionText.isNotEmpty) {
+        if (outputTranscriptionText != null &&
+            outputTranscriptionText.isNotEmpty) {
           logger.i("Gemini Spoken Transcription: $outputTranscriptionText");
           onTranscriptUpdate?.call(outputTranscriptionText);
         }
@@ -211,9 +225,10 @@ class GeminiService {
           final parts = serverContent['modelTurn']['parts'] as List?;
           if (parts != null) {
             for (final part in parts) {
-              // Ignore parts that represent internal model thoughts (thought == true)
               final isThought = part['thought'] == true;
-              if (part['text'] != null && !isThought && outputTranscriptionText == null) {
+              if (part['text'] != null &&
+                  !isThought &&
+                  outputTranscriptionText == null) {
                 final transcript = part['text'] as String;
                 logger.i("Gemini Spoken Text Part: $transcript");
                 onTranscriptUpdate?.call(transcript);
@@ -223,42 +238,47 @@ class GeminiService {
                 final pcmChunk = base64Decode(
                   part['inlineData']['data'] as String,
                 );
-                _turnBuffer.add(pcmChunk);
-                logger.d(
-                  "Received audio chunk (${pcmChunk.length} bytes, total turn buffer: ${_turnBuffer.length} bytes)",
-                );
-
-                // Reset idle flush timer: if stream pauses for 750ms, flush to prevent stalling
-                _audioIdleFlushTimer?.cancel();
-                _audioIdleFlushTimer = Timer(const Duration(milliseconds: 750), () {
-                  if (_turnBuffer.isNotEmpty && _isModelResponding) {
-                    logger.i(
-                      "Audio stream idle (750ms). Flushing ${_turnBuffer.length} bytes for playback.",
+                if (_activeStream == null) {
+                  try {
+                    _activeStream = _soloud.setBufferStream(
+                      sampleRate: GeminiConstants.outputSampleRate,
+                      channels: Channels.mono,
+                      format: BufferType.s16le,
+                      bufferingType: BufferingType.released,
                     );
-                    _isModelResponding = false;
-                    _enqueueBufferedAudio();
-                  }
-                });
+                    _soloud.addAudioDataStream(_activeStream!, pcmChunk);
 
-                // Safety flush for extremely long responses (> 10s of audio) to avoid excessive wait
-                if (_turnBuffer.length >= 480000) {
-                  _audioIdleFlushTimer?.cancel();
-                  _enqueueBufferedAudio();
+                    _activeSoundHandle = _soloud.play(_activeStream!);
+                    _isPlaying = true;
+                    _setConversationState(ConversationState.speaking);
+                    onSpeakingStateChanged?.call(true);
+                    onStatusUpdate?.call(
+                      "Sentosa Speaking... (Say 'Stop Sentosa' to interrupt)",
+                    );
+                    logger.i("Started SoLoud buffer stream playback.");
+                  } catch (e, stack) {
+                    logger.e(
+                      "Failed to setup SoLoud buffer stream",
+                      error: e,
+                      stackTrace: stack,
+                    );
+                  }
+                } else {
+                  _soloud.addAudioDataStream(_activeStream!, pcmChunk);
                 }
               }
             }
           }
         }
 
-        // When turnComplete arrives, flush all remaining audio immediately as a single complete WAV file
         if (serverContent['turnComplete'] == true) {
-          _audioIdleFlushTimer?.cancel();
-          logger.i(
-            "Gemini turnComplete received. Total turn buffer: ${_turnBuffer.length} bytes",
-          );
+          logger.i("Gemini turnComplete received.");
           _isModelResponding = false;
-          if (_turnBuffer.isNotEmpty) {
-            _enqueueBufferedAudio();
+          if (_activeStream != null) {
+            _soloud.setDataIsEnded(_activeStream!);
+            _waitForPlaybackToFinish();
+          } else {
+            _scheduleMicrophoneUnlock();
           }
           onTurnComplete?.call();
         }
@@ -268,46 +288,19 @@ class GeminiService {
     }
   }
 
-  void _enqueueBufferedAudio() {
-    if (_turnBuffer.isEmpty) return;
-    final pcmBytes = _turnBuffer.takeBytes();
-    final wavBytes = pcmToWav(pcmBytes, sampleRate: GeminiConstants.outputSampleRate);
-    logger.i(
-      "Packaging ${pcmBytes.length} bytes PCM into ${wavBytes.length} bytes WAV for playback",
-    );
-    _playbackQueue.add(wavBytes);
-    if (!_isPlaying) {
-      _playNextInQueue();
-    }
-  }
-
-  Future<void> _playNextInQueue() async {
-    if (_playbackQueue.isEmpty) {
-      _isPlaying = false;
-      // If Gemini has finished generating the full turn and no chunks remain
-      if (!_isModelResponding && _turnBuffer.isEmpty) {
+  void _waitForPlaybackToFinish() {
+    Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (_activeSoundHandle == null ||
+          !_soloud.getIsValidVoiceHandle(_activeSoundHandle!)) {
+        timer.cancel();
+        _isPlaying = false;
+        _activeStream = null;
+        _activeSoundHandle = null;
         _setConversationState(ConversationState.active);
         onSpeakingStateChanged?.call(false);
         _scheduleMicrophoneUnlock();
       }
-      return;
-    }
-
-    _isPlaying = true;
-    _setConversationState(ConversationState.speaking);
-    onSpeakingStateChanged?.call(true);
-    onStatusUpdate?.call("Sentosa Speaking... (Say 'Stop Sentosa' to interrupt)");
-
-    final nextAudio = _playbackQueue.removeAt(0);
-    try {
-      logger.i("Playing audio segment (${nextAudio.length} bytes)");
-      await _audioPlayer.play(BytesSource(nextAudio));
-    } catch (e, stack) {
-      logger.e("Error playing audio chunk", error: e, stackTrace: stack);
-      _isPlaying = false;
-      onSpeakingStateChanged?.call(false);
-      _playNextInQueue();
-    }
+    });
   }
 
   void _scheduleMicrophoneUnlock() {
@@ -315,20 +308,27 @@ class GeminiService {
     _gracePeriodTimer = Timer(GeminiConstants.acousticGracePeriod, () {
       _isMicrophoneLocked = false;
       onStatusUpdate?.call("Listening... (Speak naturally or say 'Sentosa')");
-      logger.i("Audio playback and acoustic grace period completed. Microphone unlocked.");
+      logger.i(
+        "Audio playback and acoustic grace period completed. Microphone unlocked.",
+      );
     });
   }
 
   Future<void> _stopPlayback() async {
-    _audioIdleFlushTimer?.cancel();
     _gracePeriodTimer?.cancel();
-    _turnBuffer.clear();
-    _playbackQueue.clear();
     _isPlaying = false;
     _isModelResponding = false;
     _isMicrophoneLocked = false;
     onSpeakingStateChanged?.call(false);
-    await _audioPlayer.stop();
+
+    if (_activeSoundHandle != null) {
+      _soloud.stop(_activeSoundHandle!);
+      _activeSoundHandle = null;
+    }
+    if (_activeStream != null) {
+      _soloud.disposeSource(_activeStream!);
+      _activeStream = null;
+    }
   }
 
   Future<void> _startMicrophone() async {
@@ -340,7 +340,9 @@ class GeminiService {
       return;
     }
 
-    logger.i("Starting ${GeminiConstants.micSampleRate}Hz PCM microphone stream...");
+    logger.i(
+      "Starting ${GeminiConstants.micSampleRate}Hz PCM microphone stream...",
+    );
     try {
       final recordStream = await _audioRecorder.startStream(
         const RecordConfig(
@@ -356,7 +358,6 @@ class GeminiService {
           if (_isMicrophoneLocked ||
               _isPlaying ||
               _isModelResponding ||
-              _playbackQueue.isNotEmpty ||
               _conversationState == ConversationState.speaking) {
             return;
           }
@@ -416,11 +417,10 @@ class GeminiService {
   }
 
   void dispose() {
-    _audioIdleFlushTimer?.cancel();
     _inactivityTimer?.cancel();
     _gracePeriodTimer?.cancel();
     disconnect();
-    _audioPlayer.dispose();
+    _soloud.deinit();
     _audioRecorder.dispose();
   }
 }
