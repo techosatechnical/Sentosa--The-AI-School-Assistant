@@ -30,9 +30,11 @@ class _HomeTopHeaderState extends State<HomeTopHeader> {
 
   Future<void> _toggleFullScreen() async {
     if (_isFullScreen) {
+      await windowManager.setTitleBarStyle(TitleBarStyle.normal);
       await windowManager.setFullScreen(false);
     } else {
       await windowManager.setFullScreen(true);
+      await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
     }
     await Future.delayed(const Duration(milliseconds: 100));
     _checkFullScreen();
