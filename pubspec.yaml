@@ -19,7 +19,7 @@ dependencies:
   path: ^1.9.1
   flutter_soloud: ^4.1.7
   webview_windows: ^0.4.0
-
+  window_manager: ^0.5.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
