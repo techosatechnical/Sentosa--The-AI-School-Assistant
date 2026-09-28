@@ -1,50 +1,16 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:window_manager/window_manager.dart';
 
-class HomeTopHeader extends StatefulWidget {
+class HomeTopHeader extends StatelessWidget {
   final DateTime currentTime;
 
   const HomeTopHeader({super.key, required this.currentTime});
 
   @override
-  State<HomeTopHeader> createState() => _HomeTopHeaderState();
-}
-
-class _HomeTopHeaderState extends State<HomeTopHeader> {
-  bool _isFullScreen = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkFullScreen();
-  }
-
-  Future<void> _checkFullScreen() async {
-    bool isFull = await windowManager.isFullScreen();
-    if (mounted) {
-      setState(() {
-        _isFullScreen = isFull;
-      });
-    }
-  }
-
-  Future<void> _toggleFullScreen() async {
-    if (_isFullScreen) {
-      await windowManager.setTitleBarStyle(TitleBarStyle.normal);
-      await windowManager.setFullScreen(false);
-    } else {
-      await windowManager.setFullScreen(true);
-      await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
-    }
-    await Future.delayed(const Duration(milliseconds: 100));
-    _checkFullScreen();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final hour = widget.currentTime.hour % 12 == 0 ? 12 : widget.currentTime.hour % 12;
-    final minute = widget.currentTime.minute.toString().padLeft(2, '0');
-    final period = widget.currentTime.hour >= 12 ? 'PM' : 'AM';
+    final hour = currentTime.hour % 12 == 0 ? 12 : currentTime.hour % 12;
+    final minute = currentTime.minute.toString().padLeft(2, '0');
+    final period = currentTime.hour >= 12 ? 'PM' : 'AM';
     final timeStr = "$hour:$minute $period";
 
     final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -63,7 +29,7 @@ class _HomeTopHeaderState extends State<HomeTopHeader> {
       'Dec',
     ];
     final dateStr =
-        "${weekdays[widget.currentTime.weekday - 1]}, ${widget.currentTime.day} ${months[widget.currentTime.month - 1]} ${widget.currentTime.year}";
+        "${weekdays[currentTime.weekday - 1]}, ${currentTime.day} ${months[currentTime.month - 1]} ${currentTime.year}";
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(32, 14, 32, 8),
@@ -137,62 +103,90 @@ class _HomeTopHeaderState extends State<HomeTopHeader> {
               const SizedBox(width: 16),
               Container(width: 1.5, height: 28, color: const Color(0xFFCBD5E1)),
               const SizedBox(width: 16),
-              GestureDetector(
-                onTap: _toggleFullScreen,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFFBAE6FD).withValues(alpha: 0.6),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0F2942).withValues(alpha: 0.05),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFBAE6FD).withValues(alpha: 0.6),
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.cloud_done_rounded,
-                        size: 15,
-                        color: Color(0xFF0284C7),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xFF10B981),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0xFF6EE7B7),
-                              blurRadius: 5,
-                              spreadRadius: 1,
-                            ),
-                          ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF0F2942).withValues(alpha: 0.05),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _isFullScreen ? "Minimize" : "Maximize",
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF334155),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.cloud_done_rounded,
+                          size: 15,
+                          color: Color(0xFF0284C7),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFF10B981),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0xFF6EE7B7),
+                                blurRadius: 5,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          "Cloud Connected",
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF334155),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  InkWell(
+                    onTap: () => exit(0),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEE2E2),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFFFECACA),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.power_settings_new_rounded,
+                        size: 16,
+                        color: Color(0xFFEF4444),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
