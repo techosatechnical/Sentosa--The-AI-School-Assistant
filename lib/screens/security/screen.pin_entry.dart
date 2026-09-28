@@ -291,7 +291,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Fallback
+      backgroundColor: Colors.white,
       body: Container(
         decoration: BoxDecoration(
           color: Colors.grey.shade50,
