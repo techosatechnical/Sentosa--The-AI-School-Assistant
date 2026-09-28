@@ -11,7 +11,6 @@ class WakeWordService {
 
   Function(String phrase, double confidence)? onWakeWordDetected;
   Function(String phrase)? onInterruptDetected;
-  Function()? onAdmissionCommand;
   Function(String status)? onStatusUpdate;
 
   bool get isRunning => _isRunning;
@@ -19,7 +18,6 @@ class WakeWordService {
   Future<void> start() async {
     if (_isRunning) return;
 
-    // Clean up any stale background wake processes from prior unexpected shutdowns
     try {
       await Process.run('taskkill', ['/F', '/IM', 'sentosa_wake.exe']);
     } catch (_) {}
@@ -124,11 +122,6 @@ class WakeWordService {
           return;
         }
 
-        // Direct admission commands
-        if (lower.contains("admission")) {
-          onAdmissionCommand?.call();
-          return;
-        }
 
         // Wake-word & phonetic greeting variants
         if (lower.contains("sentosa") ||

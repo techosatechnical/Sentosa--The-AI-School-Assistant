@@ -3,9 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  camera_windows
   record_windows
-  sqlite3_flutter_libs
+  webview_windows
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

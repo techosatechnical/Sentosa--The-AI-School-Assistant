@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:record/record.dart';
 import 'package:sentosa/helpers/constants/constants.dart';
-import 'package:sentosa/helpers/data/data.sentosa.dart';
 import 'package:sentosa/helpers/enums/enums.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:sentosa/services/services.dart';
@@ -152,14 +151,6 @@ class GeminiService {
     } else {
       logger.w("Cannot send text message, Gemini channel is not connected.");
     }
-  }
-
-  Future<void> triggerAdmissionProcedure() async {
-    if (!isConnected) {
-      await connect();
-    }
-    _setConversationState(ConversationState.active);
-    sendTextMessage(SentosaData.defaultAdmissionPrompt);
   }
 
   void interrupt() {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sentosa/screens/admin/screen.admission_details.dart';
 import 'package:sentosa/screens/admin/screen.maps_management.dart';
 import 'package:sentosa/widgets/widget.actioncard.dart';
 import 'package:sentosa/widgets/widget.painters.dart';
@@ -108,27 +107,6 @@ class AccessibilityMenuScreen extends StatelessWidget {
 
   Widget _buildCardsGrid(BuildContext context) {
     final cards = [
-      (
-        data: ActionCardData(
-          title: "Admission\nDetails",
-          subtitle: "Quick admission process\nwith photo & details.",
-          bgColor: const Color(0xFFE6F9F9),
-          hoverColor: const Color(0xFFD3F5F5),
-          borderColor: const Color(0xFFCEF4F4),
-          titleColor: const Color(0xFF0F2942),
-          arrowColor: const Color(0xFF14B8A6),
-          accentDashColor: const Color(0xFF5EEAD4),
-        ),
-        painter: AdmissionGraphicPainter(const Color(0xFF5EEAD4)),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AdmissionDetailsScreen(),
-            ),
-          );
-        },
-      ),
       (
         data: ActionCardData(
           title: "Principal's\nOffice",

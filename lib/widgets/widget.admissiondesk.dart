@@ -1,25 +1,7 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:math' as java_math;
-import 'package:camera_platform_interface/camera_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_soloud/flutter_soloud.dart';
-import '../services/service.admission.dart';
-import '../services/service.storage.dart';
-
-class UpperCaseTextFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    return TextEditingValue(
-      text: newValue.text.toUpperCase(),
-      selection: newValue.selection,
-    );
-  }
-}
+import 'package:webview_windows/webview_windows.dart';
 
 class AdmissionAssistantDialog extends StatefulWidget {
   const AdmissionAssistantDialog({super.key});
@@ -29,818 +11,97 @@ class AdmissionAssistantDialog extends StatefulWidget {
       _AdmissionAssistantDialogState();
 }
 
-class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
-    with SingleTickerProviderStateMixin {
-  final PageController _pageController = PageController();
-  int _currentStep = 0;
-
-  final TextEditingController _nameController = TextEditingController();
-  DateTime? _selectedDob;
-  String? _selectedGender;
-  String _selectedClass = 'Grade 1';
-  final TextEditingController _phoneController = TextEditingController();
-  String? _photoPath;
-
-  final FocusNode _nameFocus = FocusNode();
-  final FocusNode _phoneFocus = FocusNode();
-
-  int _cameraId = -1;
-  bool _isCameraInitialized = false;
-  bool _isCapturing = false;
-
-  late AnimationController _progressController;
-
-  final List<String> _classOptions = List.generate(
-    12,
-    (index) => 'Grade ${index + 1}',
-  );
-
-  final SoLoud _soloud = SoLoud.instance;
-
-  String _formatDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]} ${date.year}';
-  }
+class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
+  final _controller = WebviewController();
+  bool _isWebviewInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _initCamera();
-
-    _progressController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    );
-
-    _progressController.addStatusListener((status) {
-      if (status == AnimationStatus.completed && !_isCapturing) {
-        _capturePhoto();
-      }
-    });
-
-    _nameController.addListener(() => setState(() {}));
-    _phoneController.addListener(() => setState(() {}));
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _nameFocus.requestFocus();
-    });
+    initPlatformState();
   }
 
-  Future<void> _initCamera() async {
+  Future<void> initPlatformState() async {
     try {
-      final cameras = await CameraPlatform.instance.availableCameras();
-      debugPrint("Available cameras: ${cameras.map((c) => c.name).toList()}");
+      await _controller.initialize();
+      await _controller.setBackgroundColor(Colors.transparent);
+      await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
+      await _controller.loadUrl('https://nirmalabhavanschool.org/admission');
 
-      final targetCamera = cameras.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.external,
-        orElse: () => cameras.firstWhere(
-          (c) => c.lensDirection == CameraLensDirection.front,
-          orElse: () => cameras.first,
-        ),
-      );
-
-      debugPrint("Selected camera: ${targetCamera.name}");
-
-      _cameraId = await CameraPlatform.instance.createCameraWithSettings(
-        targetCamera,
-        const MediaSettings(
-          resolutionPreset: ResolutionPreset.max,
-          enableAudio: false,
-        ),
-      );
-
-      await CameraPlatform.instance.initializeCamera(_cameraId);
-      if (mounted) {
-        setState(() {
-          _isCameraInitialized = true;
-        });
-      }
-    } catch (e) {
-      debugPrint("Camera initialization error: $e");
+      if (!mounted) return;
+      setState(() {
+        _isWebviewInitialized = true;
+      });
+    } on PlatformException catch (e) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Error'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Code: ${e.code}'),
+                Text('Message: ${e.message}'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                child: const Text('Continue'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              )
+            ],
+          ),
+        );
+      });
     }
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
-    _nameController.dispose();
-    _phoneController.dispose();
-    _nameFocus.dispose();
-    _phoneFocus.dispose();
-    if (_cameraId >= 0) {
-      CameraPlatform.instance.dispose(_cameraId);
-    }
-    _progressController.dispose();
-    // _soloud instance is managed globally, no need to dispose here.
+    _controller.dispose();
     super.dispose();
   }
 
-  void _nextStep() {
-    if (_currentStep < 4) {
-      setState(() {
-        _currentStep++;
-      });
-      _pageController.animateToPage(
-        _currentStep,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOutCubic,
-      );
-
-      if (_currentStep == 0) _nameFocus.requestFocus();
-      if (_currentStep == 1) FocusScope.of(context).unfocus();
-      if (_currentStep == 2) _phoneFocus.requestFocus();
-      if (_currentStep == 3) {
-        FocusScope.of(context).unfocus();
-        _progressController.forward();
-      }
-    }
-  }
-
-  Future<void> _capturePhoto() async {
-    if (!_isCameraInitialized || _cameraId < 0) return;
-    setState(() {
-      _isCapturing = true;
-    });
-
-    try {
-      final XFile file = await CameraPlatform.instance.takePicture(_cameraId);
-      final securePath = await AppStorageService().saveStudentPhoto(file.path);
-      setState(() {
-        _photoPath = securePath;
-        _isCapturing = false;
-      });
-    } catch (e) {
-      debugPrint("Error capturing photo: $e");
-      setState(() {
-        _isCapturing = false;
-      });
-    }
-  }
-
-  Future<void> _playRandomLocalGreeting() async {
-    try {
-      final random = java_math.Random();
-      final index = random.nextInt(5) + 1;
-      final source = await _soloud.loadAsset(
-        'assets/audio/greeting_$index.wav',
-      );
-      _soloud.play(source);
-    } catch (e) {
-      debugPrint("Greeting Audio Failed (Non-blocking): $e");
-    }
-  }
-
-  Future<void> _registerAdmission() async {
-    try {
-      await AdmissionDbService().insertAdmission({
-        'name': _nameController.text.trim(),
-        'dob': _selectedDob != null ? _formatDate(_selectedDob!) : '',
-        'gender': _selectedGender ?? '',
-        'className': _selectedClass,
-        'phone': _phoneController.text.trim(),
-        'photoPath': _photoPath,
-      });
-
-      if (mounted) {
-        _playRandomLocalGreeting();
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => TweenAnimationBuilder(
-            tween: Tween<double>(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 1000),
-            curve: Curves.elasticOut,
-            builder: (context, scale, child) {
-              return Transform.scale(
-                scale: scale,
-                child: Dialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  elevation: 0,
-                  backgroundColor: Colors.transparent,
-                  child: Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(32),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.orangeAccent.withValues(alpha: 0.3),
-                          blurRadius: 24,
-                          spreadRadius: 8,
-                        ),
-                      ],
-                      border: Border.all(
-                        color: Colors.orangeAccent.withValues(alpha: 0.5),
-                        width: 4,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TweenAnimationBuilder(
-                          tween: Tween<double>(begin: 0.0, end: 1.0),
-                          duration: const Duration(milliseconds: 1500),
-                          curve: Curves.elasticOut,
-                          builder: (context, iconScale, child) {
-                            return Transform.scale(
-                              scale: iconScale,
-                              child: const Icon(
-                                Icons.star_rounded,
-                                color: Colors.orangeAccent,
-                                size: 100,
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'YAY! Welcome!',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blueAccent,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          '${_nameController.text} is now part of Nirmala Bhavan Higher Secondary School!',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Get ready for a fun adventure! 🚀',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
+  Future<WebviewPermissionDecision> _onPermissionRequested(
+      String url, WebviewPermissionKind kind, bool isUserInitiated) async {
+    final decision = await showDialog<WebviewPermissionDecision>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('WebView permission requested'),
+        content: Text('WebView has requested permission \'$kind\''),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(context, WebviewPermissionDecision.deny),
+            child: const Text('Deny'),
           ),
-        );
-
-        // Auto close after 11 seconds to allow audio to finish playing
-        Future.delayed(const Duration(seconds: 11), () {
-          if (mounted) {
-            Navigator.of(context).pop(); // Close success
-            Navigator.of(context).pop(); // Close admission dialog
-          }
-        });
-      }
-    } catch (e) {
-      debugPrint("Registration error: $e");
-    }
-  }
-
-  Widget _buildStepName() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          "What is the student's name?",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 32),
-        TextField(
-          controller: _nameController,
-          focusNode: _nameFocus,
-          textCapitalization: TextCapitalization.characters,
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9 ]')),
-            UpperCaseTextFormatter(),
-          ],
-          style: const TextStyle(fontSize: 24),
-          textAlign: TextAlign.center,
-          decoration: InputDecoration(
-            hintText: "ENTER NAME",
-            filled: true,
-            fillColor: Colors.grey[100],
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
-        const Spacer(),
-        ElevatedButton(
-          onPressed: _nameController.text.trim().isNotEmpty ? _nextStep : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blueAccent,
-            foregroundColor: Colors.white,
-            elevation: 4,
-            shadowColor: Colors.blueAccent.withValues(alpha: 0.5),
-            minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-          child: const Text('Next', style: TextStyle(fontSize: 18)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStepDobAndGender() {
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            "Date of Birth & Gender",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Please select the student's birth date and gender",
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 28),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              "DATE OF BIRTH",
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-                letterSpacing: 0.8,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          InkWell(
-            onTap: () async {
-              final initial =
-                  _selectedDob ?? DateTime(DateTime.now().year - 6, 1, 1);
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: initial,
-                firstDate: DateTime(DateTime.now().year - 25),
-                lastDate: DateTime.now(),
-                builder: (context, child) {
-                  return Theme(
-                    data: Theme.of(context).copyWith(
-                      colorScheme: const ColorScheme.light(
-                        primary: Colors.blueAccent,
-                      ),
-                    ),
-                    child: child!,
-                  );
-                },
-              );
-              if (picked != null) {
-                setState(() {
-                  _selectedDob = picked;
-                });
-              }
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: _selectedDob != null
-                      ? Colors.blueAccent
-                      : Colors.transparent,
-                  width: 1.5,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.calendar_month_rounded,
-                    color: _selectedDob != null
-                        ? Colors.blueAccent
-                        : Colors.grey[600],
-                    size: 24,
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    _selectedDob != null
-                        ? _formatDate(_selectedDob!)
-                        : "SELECT DATE OF BIRTH",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: _selectedDob != null
-                          ? FontWeight.w600
-                          : FontWeight.normal,
-                      color: _selectedDob != null
-                          ? Colors.black87
-                          : Colors.grey[500],
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    Icons.arrow_drop_down_rounded,
-                    color: Colors.grey[600],
-                    size: 28,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 28),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              "GENDER",
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-                letterSpacing: 0.8,
-              ),
-            ),
-          ),
-          Row(
-            children: [
-              _buildGenderOption('Male', Icons.male_rounded),
-              const SizedBox(width: 12),
-              _buildGenderOption('Female', Icons.female_rounded),
-            ],
-          ),
-          const SizedBox(height: 36),
-          ElevatedButton(
-            onPressed: (_selectedDob != null && _selectedGender != null)
-                ? _nextStep
-                : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              shadowColor: Colors.blueAccent.withValues(alpha: 0.5),
-              minimumSize: const Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            child: const Text('Next', style: TextStyle(fontSize: 18)),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(context, WebviewPermissionDecision.allow),
+            child: const Text('Allow'),
           ),
         ],
       ),
     );
-  }
 
-  Widget _buildGenderOption(String label, IconData icon) {
-    final isSelected = _selectedGender == label;
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedGender = label;
-          });
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFDBEAFC) : Colors.grey[100],
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? Colors.blueAccent : Colors.transparent,
-              width: 2,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                color: isSelected ? Colors.blueAccent : Colors.grey[600],
-                size: 26,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? Colors.blueAccent : Colors.grey[700],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStepClassAndPhone() {
-    final isPhoneValid = _phoneController.text.trim().length == 10;
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Center(
-            child: Text(
-              "Class & Contact Phone",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            "SELECT GRADE / CLASS",
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Center(
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: _classOptions
-                  .map(
-                    (c) => ChoiceChip(
-                      label: Text(c, style: const TextStyle(fontSize: 14)),
-                      selected: _selectedClass == c,
-                      selectedColor: const Color(0xFFDBEAFC),
-                      onSelected: (selected) {
-                        if (selected) setState(() => _selectedClass = c);
-                      },
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            "CONTACT PHONE NUMBER",
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _phoneController,
-            focusNode: _phoneFocus,
-            style: const TextStyle(fontSize: 22),
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(10),
-            ],
-            decoration: InputDecoration(
-              hintText: "ENTER 10-DIGIT PHONE",
-              filled: true,
-              fillColor: Colors.grey[100],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: isPhoneValid ? _nextStep : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              shadowColor: Colors.blueAccent.withValues(alpha: 0.5),
-              minimumSize: const Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            child: const Text(
-              'Ready for Photo',
-              style: TextStyle(fontSize: 18),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepCamera() {
-    if (_photoPath != null) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            "Looking good!",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 32),
-          ClipOval(
-            child: Image.file(
-              File(_photoPath!),
-              width: 300,
-              height: 300,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              OutlinedButton(
-                onPressed: () {
-                  if (_photoPath != null) {
-                    try {
-                      File(_photoPath!).deleteSync();
-                    } catch (_) {}
-                  }
-                  setState(() {
-                    _photoPath = null;
-                    _progressController.reset();
-                    _progressController.forward();
-                  });
-                },
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text('Recapture', style: TextStyle(fontSize: 18)),
-              ),
-              const SizedBox(width: 16),
-              ElevatedButton(
-                onPressed: _nextStep,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text('Continue', style: TextStyle(fontSize: 18)),
-              ),
-            ],
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          "Look at the camera!",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 32),
-        if (!_isCameraInitialized)
-          const CircularProgressIndicator()
-        else
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              ClipOval(
-                child: SizedBox(
-                  width: 300,
-                  height: 300,
-                  child: CameraPlatform.instance.buildPreview(_cameraId),
-                ),
-              ),
-              SizedBox(
-                width: 320,
-                height: 320,
-                child: AnimatedBuilder(
-                  animation: _progressController,
-                  builder: (context, child) {
-                    return CircularProgressIndicator(
-                      value: _progressController.value,
-                      strokeWidth: 8,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Colors.green,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        const SizedBox(height: 32),
-        Text(
-          _isCapturing ? "Capturing..." : "Hold still...",
-          style: const TextStyle(fontSize: 18, color: Colors.grey),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStepReview() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        const Text(
-          "Review Details",
-          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 24),
-        if (_photoPath != null)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Image.file(
-              File(_photoPath!),
-              width: 150,
-              height: 150,
-              fit: BoxFit.cover,
-            ),
-          ),
-        const SizedBox(height: 24),
-        _buildReviewRow("Name", _nameController.text),
-        _buildReviewRow(
-          "Date of Birth",
-          _selectedDob != null ? _formatDate(_selectedDob!) : "-",
-        ),
-        _buildReviewRow("Gender", _selectedGender ?? "-"),
-        _buildReviewRow("Class", _selectedClass),
-        _buildReviewRow("Phone", _phoneController.text),
-        const Spacer(),
-        ElevatedButton(
-          onPressed: _registerAdmission,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blueAccent,
-            foregroundColor: Colors.white,
-            elevation: 4,
-            shadowColor: Colors.blueAccent.withValues(alpha: 0.5),
-            minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-          child: const Text(
-            'Register',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildReviewRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 18, color: Colors.grey)),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
+    return decision ?? WebviewPermissionDecision.none;
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
       elevation: 0,
       backgroundColor: Colors.transparent,
       child: Container(
-        width: 650,
-        height: 700,
+        width: 1000,
+        height: screenHeight * 0.75,
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
           color: Colors.white,
@@ -903,12 +164,13 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
                           const Icon(
                             Icons.auto_awesome,
                             color: Colors.blueAccent,
+                            size: 28,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 12),
                           Text(
                             "Admission Assistant",
                             style: TextStyle(
-                              fontSize: 20,
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
                               color: Colors.grey[800],
                             ),
@@ -916,32 +178,127 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog>
                         ],
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close),
+                        icon: const Icon(Icons.close, size: 28),
                         onPressed: () => Navigator.of(context).pop(),
+                        splashRadius: 24,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  LinearProgressIndicator(
-                    value: (_currentStep + 1) / 5,
-                    backgroundColor: Colors.grey[200],
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Colors.blueAccent,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                   Expanded(
-                    child: PageView(
-                      controller: _pageController,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        _buildStepName(),
-                        _buildStepDobAndGender(),
-                        _buildStepClassAndPhone(),
-                        _buildStepCamera(),
-                        _buildStepReview(),
-                      ],
+                    child: Container(
+                      clipBehavior: Clip.hardEdge,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.grey[300]!,
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: _isWebviewInitialized
+                          ? Stack(
+                              children: [
+                                Webview(
+                                  _controller,
+                                  permissionRequested: _onPermissionRequested,
+                                ),
+                                StreamBuilder<LoadingState>(
+                                  stream: _controller.loadingState,
+                                  builder: (context, snapshot) {
+                                    if (snapshot.hasData &&
+                                        snapshot.data == LoadingState.loading) {
+                                      return Container(
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                        child: Center(
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.school_rounded,
+                                                size: 72,
+                                                color: Colors.blueAccent,
+                                              ),
+                                              const SizedBox(height: 24),
+                                              const Text(
+                                                'Preparing Admission Form...',
+                                                style: TextStyle(
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.blueAccent,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 24),
+                                              SizedBox(
+                                                width: 250,
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  child: const LinearProgressIndicator(
+                                                    minHeight: 6,
+                                                    backgroundColor:
+                                                        Color(0xFFE0F2FE),
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<Color>(
+                                                            Colors.blueAccent),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                    return const SizedBox.shrink();
+                                  },
+                                ),
+                              ],
+                            )
+                          : Container(
+                              color: Colors.white,
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.cloud_sync_rounded,
+                                      size: 72,
+                                      color: Colors.blueAccent,
+                                    ),
+                                    const SizedBox(height: 24),
+                                    const Text(
+                                      'Connecting to portal...',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blueAccent,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    SizedBox(
+                                      width: 250,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: const LinearProgressIndicator(
+                                          minHeight: 6,
+                                          backgroundColor: Color(0xFFE0F2FE),
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                              Colors.blueAccent),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                     ),
                   ),
                 ],
