@@ -499,12 +499,40 @@ class _MapsManagementScreenState extends State<MapsManagementScreen> {
               _corridorProps(_selectedItem as MapCorridor),
             if (_selectedItem is MapPathNode)
               _nodeProps(_selectedItem as MapPathNode),
-          ] else
+          ] else ...[
             const Text(
               "Tap any block, corridor or path node on the canvas to select it.",
               style: TextStyle(color: Colors.grey, fontSize: 12),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 16),
+            const Text(
+              "Map Properties",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0B1C30),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _textField(
+              'Title',
+              _mapData?.title ?? '',
+              (v) => setState(() => _mapData?.title = v),
+            ),
+            const SizedBox(height: 8),
+            _textField(
+              'Subtitle',
+              _mapData?.subtitle ?? '',
+              (v) => setState(() => _mapData?.subtitle = v),
+            ),
+            const SizedBox(height: 8),
+            _textField(
+              'Floor',
+              _mapData?.floor ?? '',
+              (v) => setState(() => _mapData?.floor = v),
+            ),
+          ]
         ],
       ),
     );

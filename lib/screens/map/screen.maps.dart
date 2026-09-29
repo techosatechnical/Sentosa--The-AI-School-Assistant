@@ -505,7 +505,7 @@ class _MapScreenState extends State<MapScreen>
                 ),
               ),
             ),
-            _buildFloorIndicator(),
+            _buildFloorIndicator(mapData),
           ],
         ),
       ),
@@ -706,7 +706,7 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  Widget _buildFloorIndicator() {
+  Widget _buildFloorIndicator(MapData mapData) {
     return Positioned(
       top: 16,
       right: 16,
@@ -724,10 +724,10 @@ class _MapScreenState extends State<MapScreen>
             const SizedBox(width: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
-                  'Ground Floor',
-                  style: TextStyle(
+                  mapData.floor,
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF0B1C30),

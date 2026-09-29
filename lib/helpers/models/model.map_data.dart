@@ -1,7 +1,8 @@
 class MapData {
   final String id;
-  final String title;
-  final String subtitle;
+  String title;
+  String subtitle;
+  String floor;
   final List<MapRoom> rooms;
   final List<MapCorridor> corridors;
   final List<MapPathNode> pathNodes;
@@ -10,6 +11,7 @@ class MapData {
     required this.id,
     required this.title,
     required this.subtitle,
+    this.floor = 'Ground Floor',
     required this.rooms,
     required this.corridors,
     required this.pathNodes,
@@ -20,6 +22,7 @@ class MapData {
       id: json['id'] as String,
       title: json['title'] as String,
       subtitle: json['subtitle'] as String,
+      floor: json['floor'] as String? ?? 'Ground Floor',
       rooms: (json['rooms'] as List<dynamic>?)
               ?.map((e) => MapRoom.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -40,6 +43,7 @@ class MapData {
       'id': id,
       'title': title,
       'subtitle': subtitle,
+      'floor': floor,
       'rooms': rooms.map((e) => e.toJson()).toList(),
       'corridors': corridors.map((e) => e.toJson()).toList(),
       'pathNodes': pathNodes.map((e) => e.toJson()).toList(),
