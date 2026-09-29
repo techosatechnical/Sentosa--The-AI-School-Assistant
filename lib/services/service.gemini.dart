@@ -18,6 +18,7 @@ class GeminiService {
   bool _isPlaying = false;
   bool _isModelResponding = false;
   bool _isMicrophoneLocked = false;
+  bool _hasUserSpoken = false;
   int _audioChunkCount = 0;
   Timer? _inactivityTimer;
   Timer? _gracePeriodTimer;
@@ -347,6 +348,7 @@ class GeminiService {
       );
 
       _audioChunkCount = 0;
+      _hasUserSpoken = false;
       _amplitudeSubscription = _audioRecorder
           .onAmplitudeChanged(const Duration(milliseconds: 100))
           .listen((amp) {
@@ -355,7 +357,8 @@ class GeminiService {
         final double currentAmp = amp.current;
         onAmplitudeUpdate?.call(currentAmp);
 
-        if (currentAmp > -35.0) {
+        if (currentAmp > -25.0) { // Increased threshold to -25.0 to ignore moderate background noise
+          _hasUserSpoken = true;
           if (_conversationState == ConversationState.thinking) {
             _setConversationState(ConversationState.active);
             onStatusUpdate?.call("Listening... (Speak naturally)");
@@ -363,7 +366,7 @@ class GeminiService {
           _silenceTimer?.cancel();
           _silenceTimer = null;
         } else {
-          if (_conversationState == ConversationState.active && _silenceTimer == null) {
+          if (_hasUserSpoken && _conversationState == ConversationState.active && _silenceTimer == null) {
             _silenceTimer = Timer(const Duration(milliseconds: 1500), () {
               if (_conversationState == ConversationState.active) {
                 _setConversationState(ConversationState.thinking);
