@@ -357,7 +357,7 @@ class GeminiService {
         final double currentAmp = amp.current;
         onAmplitudeUpdate?.call(currentAmp);
 
-        if (currentAmp > -25.0) { // Increased threshold to -25.0 to ignore moderate background noise
+        if (currentAmp > -20.0) { // Tweaked threshold to -20.0 to better ignore loud background noise
           _hasUserSpoken = true;
           if (_conversationState == ConversationState.thinking) {
             _setConversationState(ConversationState.active);
@@ -367,7 +367,7 @@ class GeminiService {
           _silenceTimer = null;
         } else {
           if (_hasUserSpoken && _conversationState == ConversationState.active && _silenceTimer == null) {
-            _silenceTimer = Timer(const Duration(milliseconds: 1500), () {
+            _silenceTimer = Timer(const Duration(milliseconds: 2500), () { // Increased to 2.5 seconds to allow natural breaths/pauses
               if (_conversationState == ConversationState.active) {
                 _setConversationState(ConversationState.thinking);
                 onStatusUpdate?.call("Thinking...");
@@ -381,7 +381,8 @@ class GeminiService {
           if (_isMicrophoneLocked ||
               _isPlaying ||
               _isModelResponding ||
-              _conversationState == ConversationState.speaking) {
+              _conversationState == ConversationState.speaking ||
+              _conversationState == ConversationState.thinking) { // STREAM MUTING: Stop sending audio to Gemini while thinking
             return;
           }
 
