@@ -4,6 +4,8 @@ import 'package:sentosa/widgets/widgets.dart';
 class HomeSentosaMicSection extends StatelessWidget {
   final bool isListening;
   final bool isSpeaking;
+  final bool isThinking;
+  final double currentAmplitude;
   final String statusText;
   final AnimationController pulseAnimation;
   final AnimationController waveAnimation;
@@ -13,6 +15,8 @@ class HomeSentosaMicSection extends StatelessWidget {
     super.key,
     required this.isListening,
     required this.isSpeaking,
+    this.isThinking = false,
+    this.currentAmplitude = -50.0,
     required this.statusText,
     required this.pulseAnimation,
     required this.waveAnimation,
@@ -23,7 +27,9 @@ class HomeSentosaMicSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final activeColor = isSpeaking
         ? const Color(0xFFA855F7)
-        : (isListening ? const Color(0xFF38BDF8) : const Color(0xFF10B981));
+        : isThinking
+            ? const Color(0xFFF59E0B)
+            : (isListening ? const Color(0xFF38BDF8) : const Color(0xFF10B981));
 
     return Container(
       key: const ValueKey('MicSection'),
@@ -35,6 +41,7 @@ class HomeSentosaMicSection extends StatelessWidget {
           StatusBadge(
             isListening: isListening,
             isSpeaking: isSpeaking,
+            isThinking: isThinking,
             activeColor: activeColor,
           ),
           const SizedBox(height: 14),

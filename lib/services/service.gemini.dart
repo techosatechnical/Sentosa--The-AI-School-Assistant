@@ -21,6 +21,8 @@ class GeminiService {
   int _audioChunkCount = 0;
   Timer? _inactivityTimer;
   Timer? _gracePeriodTimer;
+  Timer? _silenceTimer;
+  StreamSubscription? _amplitudeSubscription;
 
   ConversationState _conversationState = ConversationState.standby;
 
@@ -28,6 +30,7 @@ class GeminiService {
   Function(String)? onTranscriptUpdate;
   Function(bool)? onSpeakingStateChanged;
   Function(ConversationState)? onConversationStateChanged;
+  Function(double)? onAmplitudeUpdate;
   Function()? onTurnComplete;
   Function()? onDisconnected;
 
@@ -344,6 +347,32 @@ class GeminiService {
       );
 
       _audioChunkCount = 0;
+      _amplitudeSubscription = _audioRecorder
+          .onAmplitudeChanged(const Duration(milliseconds: 100))
+          .listen((amp) {
+        if (_conversationState == ConversationState.speaking || _isMicrophoneLocked) return;
+
+        final double currentAmp = amp.current;
+        onAmplitudeUpdate?.call(currentAmp);
+
+        if (currentAmp > -35.0) {
+          if (_conversationState == ConversationState.thinking) {
+            _setConversationState(ConversationState.active);
+            onStatusUpdate?.call("Listening... (Speak naturally)");
+          }
+          _silenceTimer?.cancel();
+          _silenceTimer = null;
+        } else {
+          if (_conversationState == ConversationState.active && _silenceTimer == null) {
+            _silenceTimer = Timer(const Duration(milliseconds: 1500), () {
+              if (_conversationState == ConversationState.active) {
+                _setConversationState(ConversationState.thinking);
+                onStatusUpdate?.call("Thinking...");
+              }
+            });
+          }
+        }
+      });
       _audioStreamSubscription = recordStream.listen((data) {
         if (_channel != null) {
           if (_isMicrophoneLocked ||
@@ -388,6 +417,9 @@ class GeminiService {
     logger.i("Disconnecting GeminiService session...");
     _inactivityTimer?.cancel();
     _gracePeriodTimer?.cancel();
+    _silenceTimer?.cancel();
+    await _amplitudeSubscription?.cancel();
+    _amplitudeSubscription = null;
     await _stopPlayback();
     await _audioStreamSubscription?.cancel();
     _audioStreamSubscription = null;

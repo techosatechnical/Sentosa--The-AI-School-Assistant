@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 class StatusBadge extends StatelessWidget {
   final bool isListening;
   final bool isSpeaking;
+  final bool isThinking;
   final Color activeColor;
 
   const StatusBadge({
     super.key,
     required this.isListening,
     required this.isSpeaking,
+    this.isThinking = false,
     required this.activeColor,
   });
 
@@ -27,9 +29,11 @@ class StatusBadge extends StatelessWidget {
       child: Text(
         isSpeaking
             ? "SENTOSA SPEAKING — SAY 'HEY SENTOSA' TO INTERRUPT"
-            : (isListening
-                  ? "ACTIVE CONVERSATION (SPEAK NATURALLY)"
-                  : "STANDBY — SAY 'HEY SENTOSA' OR TAP MIC"),
+            : isThinking 
+                ? "PROCESSING..."
+                : (isListening
+                      ? "ACTIVE CONVERSATION (SPEAK NATURALLY)"
+                      : "STANDBY — SAY 'HEY SENTOSA' OR TAP MIC"),
         style: TextStyle(
           color: activeColor,
           fontSize: 12.5,

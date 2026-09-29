@@ -26,6 +26,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   bool _isListening = false;
   bool _isSpeaking = false;
+  bool _isThinking = false;
+  double _currentAmplitude = -50.0;
   String _statusText = "Say 'Hey Sentosa' or tap mic";
   final List<Map<String, String>> _messages = [];
   String _currentModelTurn = "";
@@ -123,12 +125,32 @@ class _HomeScreenState extends State<HomeScreen>
     _geminiService.onConversationStateChanged = (state) {
       if (mounted) {
         setState(() {
-          _isListening = state != ConversationState.standby;
+          _isListening = state == ConversationState.active || state == ConversationState.thinking;
+          _isThinking = state == ConversationState.thinking;
           _isSpeaking = state == ConversationState.speaking;
+          
+          if (_isThinking) {
+            _gazeNotifier.value = const Offset(0.0, -8.0);
+          } else if (_isListening && !_isTrackingPointer) {
+             _gazeNotifier.value = const Offset(0.0, 0.0);
+          }
+          
           if (state == ConversationState.standby) {
             _messages.clear();
             _currentModelTurn = "";
           }
+        });
+      }
+    };
+    
+    _geminiService.onAmplitudeUpdate = (amp) {
+      if (mounted) {
+        setState(() {
+           _currentAmplitude = amp;
+           if (amp > -25.0 && _isListening && !_isThinking && !_isReacting) {
+             _gazeNotifier.value = const Offset(0.0, 0.0);
+             _triggerBlink();
+           }
         });
       }
     };
@@ -138,6 +160,7 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _isListening = false;
           _isSpeaking = false;
+          _isThinking = false;
           _statusText = "Say 'Hey Sentosa' or tap mic";
         });
       }
@@ -288,6 +311,7 @@ class _HomeScreenState extends State<HomeScreen>
       setState(() {
         _isListening = false;
         _isSpeaking = false;
+        _isThinking = false;
         _statusText = "Say 'Hey Sentosa' or tap mic";
       });
       await _geminiService.disconnect();
@@ -540,6 +564,8 @@ class _HomeScreenState extends State<HomeScreen>
                                         HomeSentosaMicSection(
                                           isListening: _isListening,
                                           isSpeaking: _isSpeaking,
+                                          isThinking: _isThinking,
+                                          currentAmplitude: _currentAmplitude,
                                           statusText: _statusText,
                                           pulseAnimation: _rayPulseController,
                                           waveAnimation: _waveController,
