@@ -45,25 +45,28 @@ namespace SentosaWake {
                     Choices choices = new Choices();
                     choices.Add(new string[] {
                         // Exact Wake Words & Greetings
-                        "Sentosa",
                         "Hey Sentosa",
                         "Hi Sentosa",
                         "Hello Sentosa",
                         "OK Sentosa",
                         
-                        // Phonetic & Acoustic Homophones for non-dictionary "Sentosa"
-                        "Centosa",
-                        "Santosa",
-                        "San tosa",
-                        "Sen tosa",
-                        "Santhosa",
-                        "Sendosa",
+                        // Phonetic & Acoustic Homophones with Prefixes
                         "Hey Centosa",
                         "Hi Centosa",
                         "Hello Centosa",
+                        "OK Centosa",
                         "Hey Santosa",
                         "Hi Santosa",
                         "Hello Santosa",
+                        "OK Santosa",
+                        "Hey San tosa",
+                        "Hi San tosa",
+                        "OK San tosa",
+                        "Hey Sen tosa",
+                        "Hi Sen tosa",
+                        "OK Sen tosa",
+                        "Hey Santhosa",
+                        "Hey Sendosa",
                         
                         // Compound Interrupts (Requires explicit 2-word command to prevent accidental speech cutoff)
                         "Sentosa Stop",

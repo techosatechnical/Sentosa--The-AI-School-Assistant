@@ -24,10 +24,9 @@ class _HomeScreenState extends State<HomeScreen>
   final GeminiService _geminiService = GeminiService();
   final WakeWordService _wakeWordService = WakeWordService();
 
-  bool _isMicModeActive = false;
   bool _isListening = false;
   bool _isSpeaking = false;
-  String _statusText = "Say 'Sentosa' or tap mic";
+  String _statusText = "Say 'Hey Sentosa' or tap mic";
   final List<Map<String, String>> _messages = [];
   String _currentModelTurn = "";
 
@@ -139,13 +138,13 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _isListening = false;
           _isSpeaking = false;
-          _statusText = "Say 'Sentosa' or tap mic";
+          _statusText = "Say 'Hey Sentosa' or tap mic";
         });
       }
     };
 
     _wakeWordService.onWakeWordDetected = (phrase, conf) {
-      if (_isMicModeActive && !_geminiService.isConnected) {
+      if (!_geminiService.isConnected) {
         _startListening(fromWakeWord: true);
       }
     };
@@ -212,6 +211,7 @@ class _HomeScreenState extends State<HomeScreen>
 
     _scheduleNextBlink();
     _startAutonomousRoam();
+    _wakeWordService.start();
   }
 
   @override
@@ -264,7 +264,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _startListening({bool fromWakeWord = false}) async {
     setState(() {
-      _isMicModeActive = true;
       _isListening = true;
       _messages.clear();
       _currentModelTurn = "";
@@ -289,7 +288,7 @@ class _HomeScreenState extends State<HomeScreen>
       setState(() {
         _isListening = false;
         _isSpeaking = false;
-        _statusText = "Say 'Sentosa' or tap mic";
+        _statusText = "Say 'Hey Sentosa' or tap mic";
       });
       await _geminiService.disconnect();
     } else {
@@ -537,65 +536,18 @@ class _HomeScreenState extends State<HomeScreen>
                                             _triggerRobotReaction();
                                           },
                                         ),
-                                        SizedBox(height: 45 * heroScale),
-                                        AnimatedSwitcher(
-                                          duration: const Duration(
-                                            milliseconds: 500,
-                                          ),
-                                          transitionBuilder:
-                                              (child, animation) {
-                                                final offsetAnimation =
-                                                    Tween<Offset>(
-                                                      begin: const Offset(
-                                                        1.0,
-                                                        0.0,
-                                                      ),
-                                                      end: Offset.zero,
-                                                    ).animate(
-                                                      CurvedAnimation(
-                                                        parent: animation,
-                                                        curve: Curves
-                                                            .easeInOutQuart,
-                                                      ),
-                                                    );
-                                                return SlideTransition(
-                                                  position: offsetAnimation,
-                                                  child: FadeTransition(
-                                                    opacity: animation,
-                                                    child: child,
-                                                  ),
-                                                );
-                                              },
-                                          child: _isMicModeActive
-                                              ? HomeSentosaMicSection(
-                                                  isListening: _isListening,
-                                                  isSpeaking: _isSpeaking,
-                                                  statusText: _statusText,
-                                                  pulseAnimation: _rayPulseController,
-                                                  waveAnimation: _waveController,
-                                                  onBackTap: () async {
-                                                    if (_isListening) {
-                                                      await _toggleListening();
-                                                    }
-                                                    _wakeWordService.stop();
-                                                    await Future.delayed(const Duration(milliseconds: 100));
-                                                    if (mounted) {
-                                                      setState(() {
-                                                        _isMicModeActive = false;
-                                                      });
-                                                    }
-                                                  },
-                                                  onMicTap: _toggleListening,
-                                                )
-                                              : HomeQuickActions(
-                                                  onTalkToSentosa: () {
-                                                    _wakeWordService.start();
-                                                    setState(() {
-                                                      _isMicModeActive = true;
-                                                    });
-                                                  },
-                                                  onRobotReaction: _triggerRobotReaction,
-                                                ),
+                                        SizedBox(height: 10 * heroScale),
+                                        HomeSentosaMicSection(
+                                          isListening: _isListening,
+                                          isSpeaking: _isSpeaking,
+                                          statusText: _statusText,
+                                          pulseAnimation: _rayPulseController,
+                                          waveAnimation: _waveController,
+                                          onMicTap: _toggleListening,
+                                        ),
+                                        SizedBox(height: 32 * heroScale),
+                                        HomeQuickActions(
+                                          onRobotReaction: _triggerRobotReaction,
                                         ),
                                         SizedBox(height: 16 * heroScale),
                                       ],

@@ -55,7 +55,7 @@ class WakeWordService {
       }
 
       _isRunning = true;
-      onStatusUpdate?.call("Wake-word engine active ('Sentosa')");
+      onStatusUpdate?.call("Wake-word engine active ('Hey Sentosa')");
 
       _stdoutSub = _process!.stdout
           .transform(utf8.decoder)
@@ -97,9 +97,9 @@ class WakeWordService {
 
     if (line.startsWith("READY")) {
       logger.i(
-        "Windows Speech Recognizer is READY and listening for 'Sentosa'! ($line)",
+        "Windows Speech Recognizer is READY and listening for 'Hey Sentosa'! ($line)",
       );
-      onStatusUpdate?.call("Listening for 'Sentosa'...");
+      onStatusUpdate?.call("Listening for 'Hey Sentosa'...");
       return;
     }
 
@@ -116,14 +116,12 @@ class WakeWordService {
         logger.i("WakeEngine recognized: '$phrase' (confidence: $confidence)");
         final lower = phrase.toLowerCase();
 
-        // Dedicated Stop / Cancel compound commands
         if (lower.contains("stop") || lower.contains("cancel")) {
           onInterruptDetected?.call(phrase);
           return;
         }
 
 
-        // Wake-word & phonetic greeting variants
         if (lower.contains("sentosa") ||
             lower.contains("centosa") ||
             lower.contains("santosa") ||

@@ -7,7 +7,6 @@ class HomeSentosaMicSection extends StatelessWidget {
   final String statusText;
   final AnimationController pulseAnimation;
   final AnimationController waveAnimation;
-  final VoidCallback onBackTap;
   final VoidCallback onMicTap;
 
   const HomeSentosaMicSection({
@@ -17,7 +16,6 @@ class HomeSentosaMicSection extends StatelessWidget {
     required this.statusText,
     required this.pulseAnimation,
     required this.waveAnimation,
-    required this.onBackTap,
     required this.onMicTap,
   });
 
@@ -33,42 +31,6 @@ class HomeSentosaMicSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.keyboard_backspace_rounded,
-                  color: Color(0xFF0F2942),
-                  size: 28,
-                ),
-                onPressed: onBackTap,
-              ),
-              const SizedBox(width: 8),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "TALK TO SENTOSA",
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F2942),
-                      letterSpacing: -0.6,
-                    ),
-                  ),
-                  SizedBox(height: 3),
-                  Text(
-                    "Your School's AI assistant.",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
           const SizedBox(height: 75),
           StatusBadge(
             isListening: isListening,

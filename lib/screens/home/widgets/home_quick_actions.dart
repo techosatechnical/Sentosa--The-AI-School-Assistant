@@ -4,12 +4,10 @@ import 'package:sentosa/widgets/widget.admissiondesk.dart';
 import 'package:sentosa/screens/map/screen.maps.dart';
 
 class HomeQuickActions extends StatelessWidget {
-  final VoidCallback onTalkToSentosa;
   final VoidCallback onRobotReaction;
 
   const HomeQuickActions({
     super.key,
-    required this.onTalkToSentosa,
     required this.onRobotReaction,
   });
 
@@ -19,7 +17,6 @@ class HomeQuickActions extends StatelessWidget {
       key: const ValueKey('QuickActions'),
       children: [
         _buildQuickActionsHeader(),
-        // Spacing is handled by the parent
         _buildQuickActionsGrid(context),
       ],
     );
@@ -47,15 +44,7 @@ class HomeQuickActions extends StatelessWidget {
                 letterSpacing: -0.6,
               ),
             ),
-            SizedBox(height: 3),
-            Text(
-              "Tap on a question or choose an option below.",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF64748B),
-              ),
-            ),
+            SizedBox(height: 10),          
           ],
         ),
       ],
@@ -91,16 +80,6 @@ class HomeQuickActions extends StatelessWidget {
 
   Widget _buildQuickActionsGrid(BuildContext context) {
     final cards = [
-      ActionCardData(
-        title: "Talk to Sentosa",
-        subtitle: "Ask anything\n(or just say it!).",
-        bgColor: const Color(0xFFF1EFFF),
-        hoverColor: const Color(0xFFE4E0FD),
-        borderColor: const Color(0xFFE3DEFA),
-        titleColor: const Color(0xFF0F2942),
-        arrowColor: const Color(0xFF8B5CF6),
-        accentDashColor: const Color(0xFFC4B5FD),
-      ),
       ActionCardData(
         title: "Mini Admission\nAssistant",
         subtitle: "Quick admission process\nwith photo & details.",
@@ -176,9 +155,7 @@ class HomeQuickActions extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          if (card.title == "Talk to Sentosa") {
-            onTalkToSentosa();
-          } else if (card.title == "Mini Admission\nAssistant") {
+          if (card.title == "Mini Admission\nAssistant") {
             showDialog(
               context: context,
               builder: (_) => const AdmissionAssistantDialog(),
