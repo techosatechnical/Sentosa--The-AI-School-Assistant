@@ -4,8 +4,7 @@ class GeminiConstants {
   static const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
   static const String geminiApiUrl =
       "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent";
-  static const String geminiModel =
-      "models/gemini-2.5-flash-native-audio-latest";
+  static const String geminiModel = "models/gemini-3.1-flash-live-preview";
   static String get geminiWebSocketUrl {
     if (geminiApiKey.isEmpty) {
       throw Exception(
@@ -14,12 +13,13 @@ class GeminiConstants {
     }
     return "$geminiApiUrl?key=$geminiApiKey";
   }
+
   static const List<String> responseModalities = ["AUDIO"];
   static const String defaultVoiceName = "Aoede";
   static const int micSampleRate = 16000;
   static const int outputSampleRate = 24000;
   static const String micMimeType = "audio/pcm;rate=16000";
-  static const int audioBufferThreshold = 144000; 
+  static const int audioBufferThreshold = 144000;
   static const Duration acousticGracePeriod = Duration(milliseconds: 350);
   static const Duration inactivityTimeout = Duration(seconds: 15);
 
@@ -38,9 +38,7 @@ class GeminiConstants {
               "prebuiltVoiceConfig": {"voiceName": voiceName},
             },
           },
-          "thinkingConfig": {
-            "thinkingBudget": 0,
-          },
+          "thinkingConfig": {"thinkingLevel": "minimal"},
         },
         "outputAudioTranscription": {},
         "systemInstruction": {

@@ -396,9 +396,10 @@ class GeminiService {
           final base64Audio = base64Encode(data);
           final payload = {
             "realtimeInput": {
-              "mediaChunks": [
-                {"mimeType": GeminiConstants.micMimeType, "data": base64Audio},
-              ],
+              "audio": {
+                "mimeType": GeminiConstants.micMimeType, 
+                "data": base64Audio
+              }
             },
           };
           _channel!.sink.add(jsonEncode(payload));
