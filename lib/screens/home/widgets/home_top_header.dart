@@ -308,21 +308,7 @@ class HomeTopHeader extends StatelessWidget {
                         "Shut Down",
                         const Color(0xFFEF4444),
                         () {
-                          Process.run('shutdown', ['/s', '/t', '3']);
-                          exit(0);
-                        },
-                      );
-                    },
-                    onLongPress: () {
-                      _showConfirmationDialog(
-                        context,
-                        "Exit Kiosk Mode",
-                        "Are you sure you want to exit Sentosa and launch Windows Explorer?",
-                        "Exit",
-                        const Color(0xFFF59E0B),
-                        () {
-                          Process.run('explorer.exe', []);
-                          exit(0);
+                          Process.run('shutdown', ['/s', '/t', '0']);
                         },
                       );
                     },
