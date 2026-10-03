@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:sentosa/screens/admin/screen.accessibility_menu.dart';
 import 'package:sentosa/screens/security/screen.change_pin.dart';
+import 'package:sentosa/screens/security/screen.ai_config.dart';
 import 'package:sentosa/services/service.config.dart';
 
 class PinEntryScreen extends StatefulWidget {
@@ -68,9 +69,14 @@ class _PinEntryScreenState extends State<PinEntryScreen>
     await Future.delayed(const Duration(milliseconds: 350));
     if (!mounted) return;
 
-    final correctPin = await ConfigService().getPin();
+    final config = ConfigService();
+    final correctPin = config.pin;
+    final aiPin = config.aiPin;
+    
     if (_pin == correctPin) {
       _navigateToAccessibilityMenu();
+    } else if (_pin == aiPin) {
+      _navigateToAiConfig();
     } else {
       setState(() {
         _hasError = true;
@@ -78,6 +84,15 @@ class _PinEntryScreenState extends State<PinEntryScreen>
       });
       _shakeController.forward(from: 0.0);
     }
+  }
+
+  void _navigateToAiConfig() {
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const AiConfigScreen(), // Needs to be created
+      ),
+    );
   }
 
   Widget _buildTopNav() {

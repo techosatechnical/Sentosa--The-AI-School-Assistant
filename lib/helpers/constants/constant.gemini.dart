@@ -1,4 +1,4 @@
-import 'package:sentosa/helpers/data/data.sentosa.dart';
+import 'package:sentosa/services/service.config.dart';
 
 class GeminiConstants {
   static const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
@@ -24,26 +24,37 @@ class GeminiConstants {
   static const Duration inactivityTimeout = Duration(seconds: 15);
 
   static Map<String, dynamic> getSetupMessage({
-    String model = geminiModel,
-    String voiceName = defaultVoiceName,
-    String instruction = SentosaData.systemInstruction,
+    String? model,
+    String? voiceName,
+    String? instruction,
   }) {
+    final activeModel = model ?? ConfigService().model;
+
+    final Map<String, dynamic> generationConfig = {
+      "responseModalities": responseModalities,
+      "speechConfig": {
+        "voiceConfig": {
+          "prebuiltVoiceConfig": {
+            "voiceName": voiceName ?? ConfigService().voice,
+          },
+        },
+      },
+    };
+
+    if (activeModel.contains("gemini-3.1")) {
+      generationConfig["thinkingConfig"] = {"thinkingLevel": "minimal"};
+    } else if (activeModel.contains("gemini-2.5")) {
+      generationConfig["thinkingConfig"] = {"thinkingBudget": 0};
+    }
+
     return {
       "setup": {
-        "model": model,
-        "generationConfig": {
-          "responseModalities": responseModalities,
-          "speechConfig": {
-            "voiceConfig": {
-              "prebuiltVoiceConfig": {"voiceName": voiceName},
-            },
-          },
-          "thinkingConfig": {"thinkingLevel": "minimal"},
-        },
+        "model": activeModel,
+        "generationConfig": generationConfig,
         "outputAudioTranscription": {},
         "systemInstruction": {
           "parts": [
-            {"text": instruction},
+            {"text": instruction ?? ConfigService().systemInstruction},
           ],
         },
       },

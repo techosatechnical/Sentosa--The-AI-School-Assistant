@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:sentosa/screens/home/screen.home.dart';
+import 'package:sentosa/services/service.config.dart';
 import 'package:window_manager/window_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ConfigService().init();
   await windowManager.ensureInitialized();
 
   WindowOptions windowOptions = const WindowOptions(
@@ -18,6 +20,8 @@ Future<void> main() async {
 
   runApp(const SentosaApp());
 }
+
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 class SentosaApp extends StatelessWidget {
   const SentosaApp({super.key});
@@ -41,6 +45,7 @@ class SentosaApp extends StatelessWidget {
           'Arial',
         ],
       ),
+      navigatorObservers: [routeObserver],
       home: const HomeScreen(),
     );
   }

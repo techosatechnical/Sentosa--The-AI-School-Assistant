@@ -5,9 +5,11 @@ import 'widgets/change_pin_backdrop.dart';
 import 'widgets/change_pin_top_nav.dart';
 import 'widgets/change_pin_input_section.dart';
 import 'widgets/change_pin_keypad.dart';
+import 'package:sentosa/widgets/widget.toast.dart';
 
 class ChangePinScreen extends StatefulWidget {
-  const ChangePinScreen({super.key});
+  final bool isAiPin;
+  const ChangePinScreen({super.key, this.isAiPin = false});
 
   @override
   State<ChangePinScreen> createState() => _ChangePinScreenState();
@@ -128,12 +130,37 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
       return;
     }
 
+    final config = ConfigService();
+    if (widget.isAiPin) {
+      if (_newPin == config.pin) {
+        setState(() {
+          _errorMessage = 'AI PIN cannot be identical to Admin PIN.';
+          _newPin = '';
+          _confirmPin = '';
+          _activeStep = 1;
+        });
+        _showFeedbackSnackBar(_errorMessage!, isError: true);
+        return;
+      }
+    } else {
+      if (_newPin == config.aiPin) {
+        setState(() {
+          _errorMessage = 'Admin PIN cannot be identical to AI PIN.';
+          _newPin = '';
+          _confirmPin = '';
+          _activeStep = 1;
+        });
+        _showFeedbackSnackBar(_errorMessage!, isError: true);
+        return;
+      }
+    }
+
     setState(() {
       _isSaving = true;
     });
 
     try {
-      final savedPin = await ConfigService().getPin();
+      final savedPin = widget.isAiPin ? config.aiPin : config.pin;
       if (_currentPin != savedPin) {
         if (!mounted) return;
         setState(() {
@@ -146,7 +173,11 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
         return;
       }
 
-      await ConfigService().setPin(_newPin);
+      if (widget.isAiPin) {
+        await config.setAiPin(_newPin);
+      } else {
+        await config.setPin(_newPin);
+      }
 
       if (!mounted) return;
       setState(() {
@@ -176,32 +207,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
   }
 
   void _showFeedbackSnackBar(String message, {required bool isError}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              isError ? Icons.error_outline : Icons.check_circle_outline,
-              color: Colors.white,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    SentosaToast.show(context: context, message: message, isError: isError);
   }
 
   @override

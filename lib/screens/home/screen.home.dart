@@ -9,6 +9,7 @@ import 'package:sentosa/screens/home/widgets/home_bottom_bar.dart';
 import 'package:sentosa/screens/home/widgets/home_quick_actions.dart';
 import 'package:sentosa/screens/home/widgets/home_speech_bubble.dart';
 import 'package:sentosa/screens/home/widgets/home_sentosa_mic.dart';
+import 'package:sentosa/main.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -17,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen>
-    with TickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver, RouteAware {
   late Timer _clockTimer;
   DateTime _currentTime = DateTime.now();
 
@@ -238,7 +239,30 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPushNext() {
+    _wakeWordService.stop();
+    if (_isListening || _isSpeaking) {
+      _toggleListening();
+    }
+  }
+
+  @override
+  void didPopNext() {
+    _wakeWordService.start();
+  }
+
+  @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _wakeWordService.dispose();
     _geminiService.dispose();

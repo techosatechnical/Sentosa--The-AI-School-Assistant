@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:sentosa/helpers/models/model.map_data.dart';
 import 'package:sentosa/services/service.storage.dart';
+import 'package:sentosa/widgets/widget.toast.dart';
 import 'package:sentosa/helpers/data/data.default_maps.dart';
 
 class MapsManagementScreen extends StatefulWidget {
@@ -67,14 +68,10 @@ class _MapsManagementScreenState extends State<MapsManagementScreen> {
     try {
       await AppStorageService().saveMapData(id, jsonEncode(_mapData!.toJson()));
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Map saved successfully!')));
+      SentosaToast.show(context: context, message: 'Map saved successfully!');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error saving map: $e')));
+      SentosaToast.show(context: context, message: 'Error saving map: $e', isError: true);
     }
   }
 
@@ -136,12 +133,13 @@ class _MapsManagementScreenState extends State<MapsManagementScreen> {
   void _deleteSelectedItem() {
     if (_selectedItem == null) return;
     setState(() {
-      if (_selectedItem is MapRoom)
+      if (_selectedItem is MapRoom) {
         _mapData!.rooms.remove(_selectedItem);
-      else if (_selectedItem is MapCorridor)
+      } else if (_selectedItem is MapCorridor) {
         _mapData!.corridors.remove(_selectedItem);
-      else if (_selectedItem is MapPathNode)
+      } else if (_selectedItem is MapPathNode) {
         _mapData!.pathNodes.remove(_selectedItem);
+      }
       _selectedItem = null;
     });
   }
@@ -573,7 +571,7 @@ class _MapsManagementScreenState extends State<MapsManagementScreen> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<RoomType>(
-          value: room.type,
+          initialValue: room.type,
           decoration: const InputDecoration(
             labelText: 'Type',
             border: OutlineInputBorder(),
@@ -829,14 +827,15 @@ class _MapBuilderPainter extends CustomPainter {
       final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(12));
 
       Color fill;
-      if (r.type == RoomType.atrium)
+      if (r.type == RoomType.atrium) {
         fill = const Color(0xFFF4F8FF);
-      else if (r.type == RoomType.foyer)
+      } else if (r.type == RoomType.foyer) {
         fill = const Color(0xFFF8FAFF);
-      else if (r.type == RoomType.target)
+      } else if (r.type == RoomType.target) {
         fill = const Color(0xFFEFF4FF);
-      else
+      } else {
         fill = Colors.white;
+      }
 
       canvas.drawRRect(rrect, Paint()..color = fill);
       canvas.drawRRect(
@@ -896,12 +895,13 @@ class _MapBuilderPainter extends CustomPainter {
     for (final n in mapData.pathNodes) {
       final isSelected = selectedItem == n;
       Color fill;
-      if (n.isStart)
+      if (n.isStart) {
         fill = Colors.green;
-      else if (n.isTarget)
+      } else if (n.isTarget) {
         fill = Colors.red;
-      else
+      } else {
         fill = Colors.white;
+      }
       canvas.drawCircle(Offset(n.x, n.y), 12, Paint()..color = fill);
       canvas.drawCircle(
         Offset(n.x, n.y),
