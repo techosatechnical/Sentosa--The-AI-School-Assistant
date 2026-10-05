@@ -150,7 +150,6 @@ class _HomeScreenState extends State<HomeScreen>
            _currentAmplitude = amp;
            if (amp > -25.0 && _isListening && !_isThinking && !_isReacting) {
              _gazeNotifier.value = const Offset(0.0, 0.0);
-             _triggerBlink();
            }
         });
       }
