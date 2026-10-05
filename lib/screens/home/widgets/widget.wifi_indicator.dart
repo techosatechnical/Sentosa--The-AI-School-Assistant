@@ -57,7 +57,9 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
             _signalStrength = int.tryParse(signalMatch?.group(1) ?? '0') ?? 0;
           });
         }
-      } else if (stateStr == 'connecting' || stateStr == 'associating' || stateStr == 'authenticating') {
+      } else if (stateStr == 'connecting' ||
+          stateStr == 'associating' ||
+          stateStr == 'authenticating') {
         if (mounted) {
           setState(() {
             _isConnected = false;
@@ -67,7 +69,8 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
           });
         }
       } else {
-        if (_connectingStartTime != null && DateTime.now().difference(_connectingStartTime!).inSeconds < 10) {
+        if (_connectingStartTime != null &&
+            DateTime.now().difference(_connectingStartTime!).inSeconds < 10) {
           return;
         }
         if (mounted) {
@@ -173,7 +176,9 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
               size: 16,
               color: _isConnected
                   ? const Color(0xFF0284C7)
-                  : (_isConnecting ? const Color(0xFFF59E0B) : const Color(0xFF64748B)),
+                  : (_isConnecting
+                        ? const Color(0xFFF59E0B)
+                        : const Color(0xFF64748B)),
             ),
             const SizedBox(width: 6),
             Container(
@@ -183,11 +188,15 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
                 shape: BoxShape.circle,
                 color: _isConnected
                     ? const Color(0xFF10B981)
-                    : (_isConnecting ? const Color(0xFFF59E0B) : const Color(0xFF94A3B8)),
+                    : (_isConnecting
+                          ? const Color(0xFFF59E0B)
+                          : const Color(0xFF94A3B8)),
                 boxShadow: _isConnected || _isConnecting
                     ? [
                         BoxShadow(
-                          color: _isConnected ? const Color(0xFF6EE7B7) : const Color(0xFFFCD34D),
+                          color: _isConnected
+                              ? const Color(0xFF6EE7B7)
+                              : const Color(0xFFFCD34D),
                           blurRadius: 5,
                           spreadRadius: 1,
                         ),
@@ -275,7 +284,7 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
   Future<void> _runHardwareScan() async {
     if (_isBackgroundScanning) return;
     if (mounted) setState(() => _isBackgroundScanning = true);
-    
+
     try {
       final psCommand = '''
 \$source = @"
@@ -369,25 +378,80 @@ Add-Type -TypeDefinition \$source;
     }
   }
 
+  Future<bool> _verifyConnection(String targetSsid) async {
+    for (int i = 0; i < 30; i++) {
+      await Future.delayed(const Duration(seconds: 1));
+      final statusResult = await Process.run('netsh', [
+        'wlan',
+        'show',
+        'interfaces',
+      ]);
+      final statusOut = statusResult.stdout.toString().toLowerCase();
+
+      final stateMatch = RegExp(r'state\s*:\s*(.+)').firstMatch(statusOut);
+      final stateStr = stateMatch?.group(1)?.trim() ?? '';
+
+      if (stateStr == 'connected') {
+        final ssidMatch = RegExp(r'\bssid\s*:\s*(.+)').firstMatch(statusOut);
+        final connectedSsid = ssidMatch?.group(1)?.trim() ?? '';
+        if (connectedSsid == targetSsid.toLowerCase()) {
+          return true;
+        }
+      } else if (stateStr == 'disconnected' && i >= 4) {
+        return false;
+      }
+    }
+    return false;
+  }
+
   Future<void> _connectToNetwork(String ssid, String auth, String enc) async {
+    if (_isLoading) return;
     final isSecure = auth != 'Open' && auth.isNotEmpty;
 
     bool isSaved = false;
     try {
-      final profileResult = await Process.run('netsh', ['wlan', 'show', 'profiles', 'name="$ssid"']);
+      final profileResult = await Process.run('netsh', [
+        'wlan',
+        'show',
+        'profiles',
+        'name="$ssid"',
+      ]);
       isSaved = profileResult.exitCode == 0;
     } catch (_) {}
 
     if (!isSecure || isSaved) {
       widget.onConnecting();
+      setState(() => _isLoading = true);
       await Process.run('netsh', ['wlan', 'connect', 'name="$ssid"']);
-      if (mounted) Navigator.of(context).pop();
+      bool connected = await _verifyConnection(ssid);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (connected) {
+          Navigator.of(context).pop();
+        } else {
+          if (isSaved && isSecure) {
+            await Process.run('netsh', [
+              'wlan',
+              'delete',
+              'profile',
+              'name="$ssid"',
+            ]);
+            setState(() {
+              _selectedSsidForPassword = ssid;
+              _selectedAuth = auth;
+              _selectedEnc = enc;
+              _tempPassword = '';
+              _passwordError = "Connection failed. Password may have changed.";
+            });
+          }
+        }
+      }
       return;
     }
 
     setState(() {
       if (_selectedSsidForPassword == ssid) {
-        _selectedSsidForPassword = null; // Toggle off
+        _selectedSsidForPassword = null;
         _passwordError = null;
       } else {
         _selectedSsidForPassword = ssid;
@@ -400,18 +464,20 @@ Add-Type -TypeDefinition \$source;
   }
 
   Future<void> _submitPassword(String ssid) async {
+    if (_isLoading) return;
     if (_tempPassword.length < 8) return;
 
     widget.onConnecting();
     setState(() => _isLoading = true);
-    
+
     final escapedSsid = _escapeXml(ssid);
     final escapedPassword = _escapeXml(_tempPassword);
     final xmlAuth = _mapAuthToXml(_selectedAuth);
     final xmlEnc = _mapEncToXml(_selectedEnc);
 
     final tempDir = Directory.systemTemp;
-    final file = File('${tempDir.path}\\wifi_profile_$ssid.xml');
+    final safeSsidForFile = ssid.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+    final file = File('${tempDir.path}\\wifi_profile_$safeSsidForFile.xml');
 
     try {
       final xml =
@@ -424,7 +490,7 @@ Add-Type -TypeDefinition \$source;
         </SSID>
     </SSIDConfig>
     <connectionType>ESS</connectionType>
-    <connectionMode>manual</connectionMode>
+    <connectionMode>auto</connectionMode>
     <MSM>
         <security>
             <authEncryption>
@@ -449,53 +515,44 @@ Add-Type -TypeDefinition \$source;
         'filename="${file.path}"',
       ]);
       await Process.run('netsh', ['wlan', 'connect', 'name="$ssid"']);
-      
-      bool connected = false;
-      for (int i = 0; i < 15; i++) {
-        await Future.delayed(const Duration(seconds: 1));
-        final statusResult = await Process.run('netsh', ['wlan', 'show', 'interfaces']);
-        final statusOut = statusResult.stdout.toString().toLowerCase();
-        
-        final stateMatch = RegExp(r'state\s*:\s*(.+)').firstMatch(statusOut);
-        final stateStr = stateMatch?.group(1)?.trim() ?? '';
-        
-        if (stateStr == 'connected') {
-            connected = true;
-            break;
-        } else if (stateStr == 'disconnected') {
-            break;
-        }
-      }
+
+      bool connected = await _verifyConnection(ssid);
 
       if (!connected) {
-          await Process.run('netsh', ['wlan', 'delete', 'profile', 'name="$ssid"']);
-          if (mounted) {
-              setState(() {
-                  _passwordError = "Incorrect password or cannot connect";
-                  _isLoading = false;
-              });
-          }
-          return; // Do not dismiss the UI, let them try again
+        await Process.run('netsh', [
+          'wlan',
+          'delete',
+          'profile',
+          'name="$ssid"',
+        ]);
+        if (mounted) {
+          setState(() {
+            _passwordError = "Incorrect password or cannot connect";
+            _isLoading = false;
+          });
+        }
+        return;
       }
-
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _selectedSsidForPassword = null;
+          _passwordError = null;
+        });
+      }
     } catch (e) {
-      // Connection error
+      if (mounted) {
+        setState(() {
+          _passwordError = "System error occurred";
+          _isLoading = false;
+        });
+      }
     } finally {
       if (await file.exists()) {
         await file.delete();
       }
     }
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        _selectedSsidForPassword = null;
-        _passwordError = null;
-      });
-    }
   }
-
-  // Removed _showPasswordDialog
 
   @override
   Widget build(BuildContext context) {
@@ -593,9 +650,11 @@ Add-Type -TypeDefinition \$source;
                   return Column(
                     children: [
                       InkWell(
-                        onTap: () => _connectToNetwork(ssid, auth, enc),
+                        onTap: _isLoading ? null : () => _connectToNetwork(ssid, auth, enc),
                         child: Container(
-                          color: isExpanded ? const Color(0xFFF1F5F9) : Colors.transparent,
+                          color: isExpanded
+                              ? const Color(0xFFF1F5F9)
+                              : Colors.transparent,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,
                             vertical: 12,
@@ -643,7 +702,11 @@ Add-Type -TypeDefinition \$source;
                       if (isExpanded)
                         Container(
                           color: const Color(0xFFF1F5F9),
-                          padding: const EdgeInsets.only(left: 20, right: 20, bottom: 16),
+                          padding: const EdgeInsets.only(
+                            left: 20,
+                            right: 20,
+                            bottom: 16,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -661,11 +724,15 @@ Add-Type -TypeDefinition \$source;
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFFE2E8F0),
+                                    ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFFE2E8F0),
+                                    ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
@@ -675,37 +742,47 @@ Add-Type -TypeDefinition \$source;
                                     ),
                                   ),
                                 ),
-                                  onChanged: (val) {
+                                onChanged: (val) {
+                                  setState(() {
                                     _tempPassword = val;
-                                    if (_passwordError != null) setState(() => _passwordError = null);
-                                  },
-                                  onSubmitted: (_) => _submitPassword(ssid),
-                                ),
-                                if (_passwordError != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 8, left: 4),
-                                    child: Text(
-                                      _passwordError!,
-                                      style: const TextStyle(
-                                        color: Colors.red,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                    if (_passwordError != null) {
+                                      _passwordError = null;
+                                    }
+                                  });
+                                },
+                                onSubmitted: (_) => _submitPassword(ssid),
+                              ),
+                              if (_passwordError != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 8,
+                                    left: 4,
+                                  ),
+                                  child: Text(
+                                    _passwordError!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                const SizedBox(height: 10),
+                                ),
+                              const SizedBox(height: 10),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   TextButton(
-                                    onPressed: () => setState(() => _selectedSsidForPassword = null),
+                                    onPressed: _isLoading ? null : () => setState(
+                                      () => _selectedSsidForPassword = null,
+                                    ),
                                     style: TextButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
                                         vertical: 8,
                                       ),
                                       minimumSize: Size.zero,
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                     ),
                                     child: const Text(
                                       "Cancel",
@@ -718,37 +795,60 @@ Add-Type -TypeDefinition \$source;
                                   ),
                                   const SizedBox(width: 8),
                                   ElevatedButton(
-                                    onPressed: _tempPassword.length >= 8 ? () => _submitPassword(ssid) : null,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF0284C7),
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
-                                      ),
-                                      minimumSize: Size.zero,
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ).copyWith(
-                                      backgroundColor: WidgetStateProperty.resolveWith<Color>(
-                                        (Set<WidgetState> states) {
-                                          if (states.contains(WidgetState.disabled)) return const Color(0xFFCBD5E1);
-                                          return const Color(0xFF0284C7);
-                                        },
-                                      ),
-                                      foregroundColor: WidgetStateProperty.resolveWith<Color>(
-                                        (Set<WidgetState> states) {
-                                          if (states.contains(WidgetState.disabled)) return const Color(0xFF94A3B8);
-                                          return Colors.white;
-                                        },
-                                      ),
-                                    ),
+                                    onPressed: (_tempPassword.length >= 8 && !_isLoading)
+                                        ? () => _submitPassword(ssid)
+                                        : null,
+                                    style:
+                                        ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(
+                                            0xFF0284C7,
+                                          ),
+                                          foregroundColor: Colors.white,
+                                          elevation: 0,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 8,
+                                          ),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                        ).copyWith(
+                                          backgroundColor:
+                                              WidgetStateProperty.resolveWith<
+                                                Color
+                                              >((Set<WidgetState> states) {
+                                                if (states.contains(
+                                                  WidgetState.disabled,
+                                                ))
+                                                  return const Color(
+                                                    0xFFCBD5E1,
+                                                  );
+                                                return const Color(0xFF0284C7);
+                                              }),
+                                          foregroundColor:
+                                              WidgetStateProperty.resolveWith<
+                                                Color
+                                              >((Set<WidgetState> states) {
+                                                if (states.contains(
+                                                  WidgetState.disabled,
+                                                ))
+                                                  return const Color(
+                                                    0xFF94A3B8,
+                                                  );
+                                                return Colors.white;
+                                              }),
+                                        ),
                                     child: const Text(
                                       "Connect",
-                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ),
                                 ],
