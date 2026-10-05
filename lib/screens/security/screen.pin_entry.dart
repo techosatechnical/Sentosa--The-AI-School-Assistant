@@ -187,7 +187,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.of(context).pop();
                             Process.runSync('reg', [
                               'delete',
@@ -196,7 +196,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                               'Shell',
                               '/f'
                             ]);
-                            Process.run('explorer.exe', []);
+                            await Process.start('explorer.exe', [], mode: ProcessStartMode.detached);
                             exit(0);
                           },
                           style: ElevatedButton.styleFrom(
