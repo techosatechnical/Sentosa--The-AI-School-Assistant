@@ -13,8 +13,11 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
   bool _isConnected = false;
   bool _isConnecting = false;
   String _ssid = "Disconnected";
-  int _signalStrength = 0; // 0 to 100
+  int _signalStrength = 0;
   Timer? _timer;
+
+  bool _isCheckingStatus = false;
+  DateTime? _connectingStartTime;
 
   @override
   void initState() {
@@ -33,6 +36,8 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
   }
 
   Future<void> _checkWifiStatus() async {
+    if (_isCheckingStatus) return;
+    _isCheckingStatus = true;
     try {
       final result = await Process.run('netsh', ['wlan', 'show', 'interfaces']);
       final output = result.stdout.toString();
@@ -47,6 +52,7 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
           setState(() {
             _isConnected = true;
             _isConnecting = false;
+            _connectingStartTime = null;
             _ssid = ssidMatch?.group(1)?.trim() ?? "Connected";
             _signalStrength = int.tryParse(signalMatch?.group(1) ?? '0') ?? 0;
           });
@@ -61,6 +67,9 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
           });
         }
       } else {
+        if (_connectingStartTime != null && DateTime.now().difference(_connectingStartTime!).inSeconds < 10) {
+          return;
+        }
         if (mounted) {
           setState(() {
             _isConnected = false;
@@ -72,6 +81,8 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
       }
     } catch (e) {
       // Ignore errors in background
+    } finally {
+      _isCheckingStatus = false;
     }
   }
 
@@ -83,6 +94,17 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
     return Icons.network_wifi_1_bar_rounded;
   }
 
+  void _forceConnectingState() {
+    if (!mounted) return;
+    setState(() {
+      _connectingStartTime = DateTime.now();
+      _isConnected = false;
+      _isConnecting = true;
+      _ssid = "Connecting...";
+      _signalStrength = 0;
+    });
+  }
+
   void _showNetworkPanel() {
     showGeneralDialog(
       context: context,
@@ -91,13 +113,13 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
       barrierColor: Colors.black.withValues(alpha: 0.2),
       transitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return const Align(
+        return Align(
           alignment: Alignment.topRight,
           child: Padding(
-            padding: EdgeInsets.only(top: 80, right: 32),
+            padding: const EdgeInsets.only(top: 80, right: 32),
             child: Material(
               color: Colors.transparent,
-              child: WifiNetworkPanel(),
+              child: WifiNetworkPanel(onConnecting: _forceConnectingState),
             ),
           ),
         );
@@ -194,7 +216,8 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
 }
 
 class WifiNetworkPanel extends StatefulWidget {
-  const WifiNetworkPanel({super.key});
+  final VoidCallback onConnecting;
+  const WifiNetworkPanel({super.key, required this.onConnecting});
 
   @override
   State<WifiNetworkPanel> createState() => _WifiNetworkPanelState();
@@ -204,7 +227,35 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
   bool _isLoading = true;
   List<Map<String, String>> _networks = [];
   String? _selectedSsidForPassword;
+  String _selectedAuth = '';
+  String _selectedEnc = '';
   String _tempPassword = '';
+
+  String _escapeXml(String input) {
+    return input
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
+  }
+
+  String _mapAuthToXml(String authStr) {
+    final auth = authStr.toLowerCase();
+    if (auth.contains('wpa3')) return 'WPA3SAE';
+    if (auth.contains('wpa2') && auth.contains('personal')) return 'WPA2PSK';
+    if (auth.contains('wpa') && auth.contains('personal')) return 'WPAPSK';
+    if (auth.contains('wpa2') && auth.contains('enterprise')) return 'WPA2';
+    return 'WPA2PSK';
+  }
+
+  String _mapEncToXml(String encStr) {
+    final enc = encStr.toLowerCase();
+    if (enc.contains('ccmp')) return 'AES';
+    if (enc.contains('tkip')) return 'TKIP';
+    if (enc.contains('none')) return 'none';
+    return 'AES';
+  }
 
   @override
   void initState() {
@@ -214,6 +265,49 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
 
   Future<void> _scanNetworks() async {
     setState(() => _isLoading = true);
+    
+    try {
+      final psCommand = '''
+\$source = @"
+using System;
+using System.Runtime.InteropServices;
+public class WiFiScan {
+    [DllImport("Wlanapi.dll")]
+    public static extern uint WlanOpenHandle(uint dwClientVersion, IntPtr pReserved, out uint pdwNegotiatedVersion, out IntPtr ClientHandle);
+    [DllImport("Wlanapi.dll")]
+    public static extern uint WlanEnumInterfaces(IntPtr ClientHandle, IntPtr pReserved, out IntPtr ppInterfaceList);
+    [DllImport("Wlanapi.dll")]
+    public static extern uint WlanScan(IntPtr ClientHandle, ref Guid pInterfaceGuid, IntPtr pDot11Ssid, IntPtr pIeData, IntPtr pReserved);
+    [DllImport("Wlanapi.dll")]
+    public static extern void WlanFreeMemory(IntPtr pMemory);
+    [DllImport("Wlanapi.dll")]
+    public static extern uint WlanCloseHandle(IntPtr ClientHandle, IntPtr pReserved);
+    public static void Scan() {
+        uint negotiatedVersion;
+        IntPtr clientHandle;
+        if (WlanOpenHandle(2, IntPtr.Zero, out negotiatedVersion, out clientHandle) == 0) {
+            IntPtr pInterfaceList;
+            if (WlanEnumInterfaces(clientHandle, IntPtr.Zero, out pInterfaceList) == 0) {
+                int numItems = Marshal.ReadInt32(pInterfaceList, 0);
+                if (numItems > 0) {
+                    IntPtr pGuid = new IntPtr(pInterfaceList.ToInt64() + 8);
+                    Guid guid = (Guid)Marshal.PtrToStructure(pGuid, typeof(Guid));
+                    WlanScan(clientHandle, ref guid, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+                }
+                WlanFreeMemory(pInterfaceList);
+            }
+            WlanCloseHandle(clientHandle, IntPtr.Zero);
+        }
+    }
+}
+"@;
+Add-Type -TypeDefinition \$source;
+[WiFiScan]::Scan();
+''';
+      await Process.run('powershell', ['-NoProfile', '-Command', psCommand]);
+      await Future.delayed(const Duration(seconds: 2));
+    } catch (_) {}
+
     try {
       final result = await Process.run('netsh', ['wlan', 'show', 'networks']);
       final output = result.stdout.toString();
@@ -229,14 +323,20 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
           if (parts.length > 1) {
             currentSsid = parts.sublist(1).join(':').trim();
             if (currentSsid.isNotEmpty) {
-              networks.add({'ssid': currentSsid, 'auth': ''});
+              networks.add({'ssid': currentSsid, 'auth': '', 'enc': ''});
             }
           }
         } else if (line.trim().startsWith('Authentication') &&
             currentSsid.isNotEmpty) {
           final parts = line.split(':');
           if (parts.length > 1 && networks.isNotEmpty) {
-            networks.last['auth'] = parts[1].trim();
+            networks.last['auth'] = parts.sublist(1).join(':').trim();
+          }
+        } else if (line.trim().startsWith('Encryption') &&
+            currentSsid.isNotEmpty) {
+          final parts = line.split(':');
+          if (parts.length > 1 && networks.isNotEmpty) {
+            networks.last['enc'] = parts.sublist(1).join(':').trim();
           }
         }
       }
@@ -254,7 +354,7 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
     }
   }
 
-  Future<void> _connectToNetwork(String ssid, String auth) async {
+  Future<void> _connectToNetwork(String ssid, String auth, String enc) async {
     final isSecure = auth != 'Open' && auth.isNotEmpty;
 
     bool isSaved = false;
@@ -264,6 +364,7 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
     } catch (_) {}
 
     if (!isSecure || isSaved) {
+      widget.onConnecting();
       await Process.run('netsh', ['wlan', 'connect', 'name="$ssid"']);
       if (mounted) Navigator.of(context).pop();
       return;
@@ -274,24 +375,35 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
         _selectedSsidForPassword = null; // Toggle off
       } else {
         _selectedSsidForPassword = ssid;
+        _selectedAuth = auth;
+        _selectedEnc = enc;
         _tempPassword = '';
       }
     });
   }
 
   Future<void> _submitPassword(String ssid) async {
-    if (_tempPassword.isEmpty) return;
+    if (_tempPassword.length < 8) return;
 
+    widget.onConnecting();
     setState(() => _isLoading = true);
+    
+    final escapedSsid = _escapeXml(ssid);
+    final escapedPassword = _escapeXml(_tempPassword);
+    final xmlAuth = _mapAuthToXml(_selectedAuth);
+    final xmlEnc = _mapEncToXml(_selectedEnc);
+
+    final tempDir = Directory.systemTemp;
+    final file = File('${tempDir.path}\\wifi_profile_$ssid.xml');
 
     try {
       final xml =
           '''<?xml version="1.0"?>
 <WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
-    <name>$ssid</name>
+    <name>$escapedSsid</name>
     <SSIDConfig>
         <SSID>
-            <name>$ssid</name>
+            <name>$escapedSsid</name>
         </SSID>
     </SSIDConfig>
     <connectionType>ESS</connectionType>
@@ -299,21 +411,18 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
     <MSM>
         <security>
             <authEncryption>
-                <authentication>WPA2PSK</authentication>
-                <encryption>AES</encryption>
+                <authentication>$xmlAuth</authentication>
+                <encryption>$xmlEnc</encryption>
                 <useOneX>false</useOneX>
             </authEncryption>
             <sharedKey>
                 <keyType>passPhrase</keyType>
                 <protected>false</protected>
-                <keyMaterial>$_tempPassword</keyMaterial>
+                <keyMaterial>$escapedPassword</keyMaterial>
             </sharedKey>
         </security>
     </MSM>
 </WLANProfile>''';
-
-      final tempDir = Directory.systemTemp;
-      final file = File('${tempDir.path}\\wifi_profile_$ssid.xml');
       await file.writeAsString(xml);
 
       await Process.run('netsh', [
@@ -323,12 +432,12 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
         'filename="${file.path}"',
       ]);
       await Process.run('netsh', ['wlan', 'connect', 'name="$ssid"']);
-
+    } catch (e) {
+      // Connection error
+    } finally {
       if (await file.exists()) {
         await file.delete();
       }
-    } catch (e) {
-      // Connection error
     }
 
     if (mounted) {
@@ -336,7 +445,6 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
         _isLoading = false;
         _selectedSsidForPassword = null;
       });
-      Navigator.of(context).pop();
     }
   }
 
@@ -430,6 +538,7 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
                   final network = _networks[index];
                   final ssid = network['ssid'] ?? 'Unknown';
                   final auth = network['auth'] ?? '';
+                  final enc = network['enc'] ?? '';
                   final isSecure = auth != 'Open';
 
                   final isExpanded = _selectedSsidForPassword == ssid;
@@ -437,7 +546,7 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
                   return Column(
                     children: [
                       InkWell(
-                        onTap: () => _connectToNetwork(ssid, auth),
+                        onTap: () => _connectToNetwork(ssid, auth, enc),
                         child: Container(
                           color: isExpanded ? const Color(0xFFF1F5F9) : Colors.transparent,
                           padding: const EdgeInsets.symmetric(
@@ -547,7 +656,7 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
                                   ),
                                   const SizedBox(width: 8),
                                   ElevatedButton(
-                                    onPressed: () => _submitPassword(ssid),
+                                    onPressed: _tempPassword.length >= 8 ? () => _submitPassword(ssid) : null,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF0284C7),
                                       foregroundColor: Colors.white,
@@ -560,6 +669,19 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
                                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ).copyWith(
+                                      backgroundColor: WidgetStateProperty.resolveWith<Color>(
+                                        (Set<WidgetState> states) {
+                                          if (states.contains(WidgetState.disabled)) return const Color(0xFFCBD5E1);
+                                          return const Color(0xFF0284C7);
+                                        },
+                                      ),
+                                      foregroundColor: WidgetStateProperty.resolveWith<Color>(
+                                        (Set<WidgetState> states) {
+                                          if (states.contains(WidgetState.disabled)) return const Color(0xFF94A3B8);
+                                          return Colors.white;
+                                        },
                                       ),
                                     ),
                                     child: const Text(
