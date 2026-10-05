@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:sentosa/screens/home/widgets/widget.wifi_indicator.dart';
 
 class HomeTopHeader extends StatelessWidget {
   final DateTime currentTime;
@@ -78,19 +79,23 @@ class HomeTopHeader extends StatelessWidget {
                     children: [
                       Expanded(
                         child: TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            Process.run('shutdown', ['/r', '/t', '0']);
+                          },
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: const Color(0xFFF1F5F9),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           child: const Text(
-                            "Go Back",
+                            "Refresh",
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF64748B),
+                              color: Color(0xFF0F2942),
                             ),
                           ),
                         ),
@@ -242,62 +247,7 @@ class HomeTopHeader extends StatelessWidget {
               const SizedBox(width: 16),
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFFBAE6FD).withValues(alpha: 0.6),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(
-                            0xFF0F2942,
-                          ).withValues(alpha: 0.05),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.cloud_done_rounded,
-                          size: 15,
-                          color: Color(0xFF0284C7),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFF10B981),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0xFF6EE7B7),
-                                blurRadius: 5,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          "Cloud Connected",
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF334155),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  const WifiStatusWidget(),
                   const SizedBox(width: 12),
                   InkWell(
                     onTap: () {
