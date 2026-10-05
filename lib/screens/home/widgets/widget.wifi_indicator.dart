@@ -225,8 +225,10 @@ class WifiNetworkPanel extends StatefulWidget {
 
 class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
   bool _isLoading = true;
+  bool _isBackgroundScanning = false;
   List<Map<String, String>> _networks = [];
   String? _selectedSsidForPassword;
+  String? _passwordError;
   String _selectedAuth = '';
   String _selectedEnc = '';
   String _tempPassword = '';
@@ -260,11 +262,19 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
   @override
   void initState() {
     super.initState();
-    _scanNetworks();
+    _loadNetworksFast();
   }
 
-  Future<void> _scanNetworks() async {
+  Future<void> _loadNetworksFast() async {
     setState(() => _isLoading = true);
+    await _fetchAndParseNetworks();
+    if (mounted) setState(() => _isLoading = false);
+    _runHardwareScan();
+  }
+
+  Future<void> _runHardwareScan() async {
+    if (_isBackgroundScanning) return;
+    if (mounted) setState(() => _isBackgroundScanning = true);
     
     try {
       final psCommand = '''
@@ -306,8 +316,13 @@ Add-Type -TypeDefinition \$source;
 ''';
       await Process.run('powershell', ['-NoProfile', '-Command', psCommand]);
       await Future.delayed(const Duration(seconds: 2));
+      await _fetchAndParseNetworks();
     } catch (_) {}
 
+    if (mounted) setState(() => _isBackgroundScanning = false);
+  }
+
+  Future<void> _fetchAndParseNetworks() async {
     try {
       final result = await Process.run('netsh', ['wlan', 'show', 'networks']);
       final output = result.stdout.toString();
@@ -373,11 +388,13 @@ Add-Type -TypeDefinition \$source;
     setState(() {
       if (_selectedSsidForPassword == ssid) {
         _selectedSsidForPassword = null; // Toggle off
+        _passwordError = null;
       } else {
         _selectedSsidForPassword = ssid;
         _selectedAuth = auth;
         _selectedEnc = enc;
         _tempPassword = '';
+        _passwordError = null;
       }
     });
   }
@@ -407,7 +424,7 @@ Add-Type -TypeDefinition \$source;
         </SSID>
     </SSIDConfig>
     <connectionType>ESS</connectionType>
-    <connectionMode>auto</connectionMode>
+    <connectionMode>manual</connectionMode>
     <MSM>
         <security>
             <authEncryption>
@@ -432,6 +449,35 @@ Add-Type -TypeDefinition \$source;
         'filename="${file.path}"',
       ]);
       await Process.run('netsh', ['wlan', 'connect', 'name="$ssid"']);
+      
+      bool connected = false;
+      for (int i = 0; i < 15; i++) {
+        await Future.delayed(const Duration(seconds: 1));
+        final statusResult = await Process.run('netsh', ['wlan', 'show', 'interfaces']);
+        final statusOut = statusResult.stdout.toString().toLowerCase();
+        
+        final stateMatch = RegExp(r'state\s*:\s*(.+)').firstMatch(statusOut);
+        final stateStr = stateMatch?.group(1)?.trim() ?? '';
+        
+        if (stateStr == 'connected') {
+            connected = true;
+            break;
+        } else if (stateStr == 'disconnected') {
+            break;
+        }
+      }
+
+      if (!connected) {
+          await Process.run('netsh', ['wlan', 'delete', 'profile', 'name="$ssid"']);
+          if (mounted) {
+              setState(() {
+                  _passwordError = "Incorrect password or cannot connect";
+                  _isLoading = false;
+              });
+          }
+          return; // Do not dismiss the UI, let them try again
+      }
+
     } catch (e) {
       // Connection error
     } finally {
@@ -444,6 +490,7 @@ Add-Type -TypeDefinition \$source;
       setState(() {
         _isLoading = false;
         _selectedSsidForPassword = null;
+        _passwordError = null;
       });
     }
   }
@@ -492,7 +539,7 @@ Add-Type -TypeDefinition \$source;
                     ),
                   ],
                 ),
-                if (_isLoading)
+                if (_isLoading || _isBackgroundScanning)
                   const SizedBox(
                     width: 16,
                     height: 16,
@@ -505,7 +552,7 @@ Add-Type -TypeDefinition \$source;
                   )
                 else
                   InkWell(
-                    onTap: _scanNetworks,
+                    onTap: _runHardwareScan,
                     borderRadius: BorderRadius.circular(20),
                     child: const Icon(
                       Icons.refresh_rounded,
@@ -628,10 +675,25 @@ Add-Type -TypeDefinition \$source;
                                     ),
                                   ),
                                 ),
-                                onChanged: (val) => _tempPassword = val,
-                                onSubmitted: (_) => _submitPassword(ssid),
-                              ),
-                              const SizedBox(height: 10),
+                                  onChanged: (val) {
+                                    _tempPassword = val;
+                                    if (_passwordError != null) setState(() => _passwordError = null);
+                                  },
+                                  onSubmitted: (_) => _submitPassword(ssid),
+                                ),
+                                if (_passwordError != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8, left: 4),
+                                    child: Text(
+                                      _passwordError!,
+                                      style: const TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(height: 10),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
