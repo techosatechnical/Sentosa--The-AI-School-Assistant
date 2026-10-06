@@ -824,10 +824,11 @@ Add-Type -TypeDefinition \$source;
                                               >((Set<WidgetState> states) {
                                                 if (states.contains(
                                                   WidgetState.disabled,
-                                                ))
+                                                )) {
                                                   return const Color(
                                                     0xFFCBD5E1,
                                                   );
+                                                }
                                                 return const Color(0xFF0284C7);
                                               }),
                                           foregroundColor:
@@ -836,10 +837,11 @@ Add-Type -TypeDefinition \$source;
                                               >((Set<WidgetState> states) {
                                                 if (states.contains(
                                                   WidgetState.disabled,
-                                                ))
+                                                )) {
                                                   return const Color(
                                                     0xFF94A3B8,
                                                   );
+                                                }
                                                 return Colors.white;
                                               }),
                                         ),
