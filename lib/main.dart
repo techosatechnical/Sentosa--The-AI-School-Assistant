@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sentosa/screens/home/screen.home.dart';
+import 'package:sentosa/screens/splash/screen.splash.dart';
 import 'package:sentosa/services/service.config.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -46,7 +46,7 @@ class SentosaApp extends StatelessWidget {
         ],
       ),
       navigatorObservers: [routeObserver],
-      home: const HomeScreen(),
+      home: const SplashScreen(),
     );
   }
 }
