@@ -60,9 +60,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
   void _navigateToAccessibilityMenu() {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => const AccessibilityMenuScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const AccessibilityMenuScreen()),
     );
   }
 
@@ -73,7 +71,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
     final config = ConfigService();
     final correctPin = config.pin;
     final aiPin = config.aiPin;
-    
+
     if (_pin == correctPin) {
       _navigateToAccessibilityMenu();
     } else if (_pin == aiPin) {
@@ -102,7 +100,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
     setState(() {
       _pin = '';
     });
-    
+
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -189,16 +187,9 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                         child: ElevatedButton(
                           onPressed: () async {
                             Navigator.of(context).pop();
-                            Process.runSync('reg', [
-                              'add',
-                              r'HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
-                              '/v',
-                              'Shell',
-                              '/t',
-                              'REG_SZ',
-                              '/d',
-                              'explorer.exe',
-                              '/f'
+                            Process.runSync('powershell', [
+                              '-Command',
+                              "Start-Process reg -ArgumentList 'add', '\"HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\"', '/v', 'Shell', '/t', 'REG_SZ', '/d', 'explorer.exe', '/f', '/reg:64' -Verb RunAs -Wait -WindowStyle Hidden",
                             ]);
                             await Process.start('shutdown', ['/l']);
                             exit(0);
@@ -231,10 +222,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         return FadeTransition(
-          opacity: CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOut,
-          ),
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
           child: ScaleTransition(
             scale: CurvedAnimation(
               parent: animation,
@@ -270,7 +258,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
               ),
               child: Icon(Icons.arrow_back, color: Colors.black),
             ),
-          ),       
+          ),
         ],
       ),
     );
@@ -280,8 +268,11 @@ class _PinEntryScreenState extends State<PinEntryScreen>
     return AnimatedBuilder(
       animation: _shakeController,
       builder: (context, child) {
-        final offset =
-            _hasError ? (10 * (1 - _shakeController.value) * (math.sin(_shakeController.value * 4 * math.pi))) : 0.0;
+        final offset = _hasError
+            ? (10 *
+                  (1 - _shakeController.value) *
+                  (math.sin(_shakeController.value * 4 * math.pi)))
+            : 0.0;
         return Transform.translate(
           offset: Offset(offset, 0),
           child: Row(
@@ -302,15 +293,18 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                   border: Border.all(
                     color: isActive
                         ? Colors.blue.shade500
-                        : (isFilled ? Colors.blue.shade300 : Colors.grey.shade300),
+                        : (isFilled
+                              ? Colors.blue.shade300
+                              : Colors.grey.shade300),
                     width: isActive ? 2 : 1,
                   ),
                   boxShadow: isActive
                       ? [
                           BoxShadow(
-                              color: Colors.blue.shade500.withValues(alpha: 0.2),
-                              blurRadius: 8,
-                              spreadRadius: 1)
+                            color: Colors.blue.shade500.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
                         ]
                       : [],
                 ),
@@ -325,12 +319,12 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                           ),
                         )
                       : (isActive
-                          ? Container(
-                              width: 2,
-                              height: 24,
-                              color: Colors.blue.shade500,
-                            )
-                          : null),
+                            ? Container(
+                                width: 2,
+                                height: 24,
+                                color: Colors.blue.shade500,
+                              )
+                            : null),
                 ),
               );
             }),
@@ -379,7 +373,18 @@ class _PinEntryScreenState extends State<PinEntryScreen>
           } else {
             final keyNumber = index == 10 ? '0' : '${index + 1}';
             final letters = [
-              '', 'ABC', 'DEF', 'GHI', 'JKL', 'MNO', 'PQRS', 'TUV', 'WXYZ', '', '+', ''
+              '',
+              'ABC',
+              'DEF',
+              'GHI',
+              'JKL',
+              'MNO',
+              'PQRS',
+              'TUV',
+              'WXYZ',
+              '',
+              '+',
+              '',
             ];
             return _buildKeypadButton(
               text: keyNumber,
@@ -418,7 +423,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                 color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
-              )
+              ),
             ],
           ),
           child: Column(
@@ -490,25 +495,33 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.95),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.lightBlue.shade100),
+                              border: Border.all(
+                                color: Colors.lightBlue.shade100,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.blue.shade200.withValues(alpha: 0.2),
+                                  color: Colors.blue.shade200.withValues(
+                                    alpha: 0.2,
+                                  ),
                                   blurRadius: 20,
                                   spreadRadius: 5,
-                                )
+                                ),
                               ],
                             ),
-                            child: Icon(Icons.shield_outlined,
-                                size: 36, color: Colors.blue.shade600),
+                            child: Icon(
+                              Icons.shield_outlined,
+                              size: 36,
+                              color: Colors.blue.shade600,
+                            ),
                           ),
                           const SizedBox(height: 24),
                           const Text(
                             'Enter PIN',
                             style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87),
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Padding(
@@ -517,7 +530,9 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                               'Enter your 6-digit security PIN to access the Sentosa enterprise console.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  fontSize: 14, color: Colors.grey.shade500),
+                                fontSize: 14,
+                                color: Colors.grey.shade500,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -527,14 +542,20 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                                 ? Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Icon(Icons.error,
-                                          size: 14, color: Colors.red),
+                                      const Icon(
+                                        Icons.error,
+                                        size: 14,
+                                        color: Colors.red,
+                                      ),
                                       const SizedBox(width: 4),
-                                      Text(_errorMessage,
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.w500)),
+                                      Text(
+                                        _errorMessage,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                     ],
                                   )
                                 : const SizedBox.shrink(),
@@ -550,14 +571,18 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                                 ),
                               );
                             },
-                            icon: Icon(Icons.lock_reset,
-                                size: 14, color: Colors.blue.shade500),
+                            icon: Icon(
+                              Icons.lock_reset,
+                              size: 14,
+                              color: Colors.blue.shade500,
+                            ),
                             label: Text(
                               'Change or Reset PIN',
                               style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.blue.shade600),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.blue.shade600,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 24),
@@ -574,15 +599,19 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.verified_user,
-                                size: 14, color: Colors.green),
+                            const Icon(
+                              Icons.verified_user,
+                              size: 14,
+                              color: Colors.green,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               'Secured with Sentosa 2.0',
                               style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.grey.shade600),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
                           ],
                         ),
@@ -590,7 +619,9 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                         Text(
                           'Sentosa Desktop Runtime • Windows Mode',
                           style: TextStyle(
-                              fontSize: 10, color: Colors.grey.shade400),
+                            fontSize: 10,
+                            color: Colors.grey.shade400,
+                          ),
                         ),
                       ],
                     ),
