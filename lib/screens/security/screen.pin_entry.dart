@@ -190,13 +190,17 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                           onPressed: () async {
                             Navigator.of(context).pop();
                             Process.runSync('reg', [
-                              'delete',
-                              r'HKCU\Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
+                              'add',
+                              r'HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
                               '/v',
                               'Shell',
+                              '/t',
+                              'REG_SZ',
+                              '/d',
+                              'explorer.exe',
                               '/f'
                             ]);
-                            await Process.start('explorer.exe', [], mode: ProcessStartMode.detached);
+                            await Process.start('shutdown', ['/l']);
                             exit(0);
                           },
                           style: ElevatedButton.styleFrom(
