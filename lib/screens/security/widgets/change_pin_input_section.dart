@@ -112,7 +112,6 @@ class ChangePinInputSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Current PIN
           GestureDetector(
             onTap: () => onStepChanged(0),
             child: Container(
@@ -175,7 +174,7 @@ class ChangePinInputSection extends StatelessWidget {
                     value: currentPin,
                     isActive: activeStep == 0,
                     obscureText: !showCurrentPin,
-                  ),                
+                  ),
                 ],
               ),
             ),
@@ -184,7 +183,6 @@ class ChangePinInputSection extends StatelessWidget {
             padding: EdgeInsets.symmetric(vertical: 16),
             child: Divider(color: Colors.black12, height: 1),
           ),
-          // New PIN
           GestureDetector(
             onTap: () => onStepChanged(1),
             child: Container(
@@ -248,7 +246,6 @@ class ChangePinInputSection extends StatelessWidget {
             padding: EdgeInsets.symmetric(vertical: 16),
             child: Divider(color: Colors.black12, height: 1),
           ),
-          // Confirm PIN
           GestureDetector(
             onTap: () => onStepChanged(2),
             child: Container(
@@ -361,7 +358,10 @@ class ChangePinInputSection extends StatelessWidget {
                   : const Icon(Icons.arrow_forward, size: 18),
               label: Text(
                 isSaving ? 'Saving PIN...' : 'Save PIN',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue.shade600,

@@ -6,19 +6,13 @@ import 'package:sentosa/screens/map/screen.maps.dart';
 class HomeQuickActions extends StatelessWidget {
   final VoidCallback onRobotReaction;
 
-  const HomeQuickActions({
-    super.key,
-    required this.onRobotReaction,
-  });
+  const HomeQuickActions({super.key, required this.onRobotReaction});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       key: const ValueKey('QuickActions'),
-      children: [
-        _buildQuickActionsHeader(),
-        _buildQuickActionsGrid(context),
-      ],
+      children: [_buildQuickActionsHeader(), _buildQuickActionsGrid(context)],
     );
   }
 
@@ -44,7 +38,7 @@ class HomeQuickActions extends StatelessWidget {
                 letterSpacing: -0.6,
               ),
             ),
-            SizedBox(height: 10),          
+            SizedBox(height: 10),
           ],
         ),
       ],

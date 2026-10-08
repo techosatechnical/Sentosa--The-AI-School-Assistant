@@ -365,7 +365,9 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                     shape: BoxShape.circle,
                     color: isSelected ? voice.primaryColor : Colors.white,
                     border: Border.all(
-                      color: isSelected ? voice.primaryColor : voice.borderColor,
+                      color: isSelected
+                          ? voice.primaryColor
+                          : voice.borderColor,
                       width: 1.5,
                     ),
                     boxShadow: [
@@ -379,7 +381,9 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                     ],
                   ),
                   child: Icon(
-                    isSelected ? Icons.check_rounded : Icons.radio_button_unchecked_rounded,
+                    isSelected
+                        ? Icons.check_rounded
+                        : Icons.radio_button_unchecked_rounded,
                     size: 15,
                     color: isSelected ? Colors.white : const Color(0xFF94A3B8),
                   ),
@@ -463,7 +467,9 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                   shape: BoxShape.circle,
                   color: isSelected ? Colors.white : bgColor,
                   border: Border.all(
-                    color: isSelected ? primaryColor.withValues(alpha: 0.3) : borderColor,
+                    color: isSelected
+                        ? primaryColor.withValues(alpha: 0.3)
+                        : borderColor,
                   ),
                 ),
                 child: Icon(icon, color: primaryColor, size: 28),
@@ -530,7 +536,9 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                   ),
                 ),
                 child: Icon(
-                  isSelected ? Icons.check_rounded : Icons.radio_button_unchecked_rounded,
+                  isSelected
+                      ? Icons.check_rounded
+                      : Icons.radio_button_unchecked_rounded,
                   size: 15,
                   color: isSelected ? Colors.white : const Color(0xFF94A3B8),
                 ),
@@ -561,10 +569,7 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFFFBF9FF),
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: const Color(0xFFEDE9FE),
-              width: 1.5,
-            ),
+            border: Border.all(color: const Color(0xFFEDE9FE), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF0F2942).withValues(alpha: 0.04),
@@ -581,9 +586,7 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: const Color(0xFFEDE9FE),
-                  border: Border.all(
-                    color: const Color(0xFFDDD6FE),
-                  ),
+                  border: Border.all(color: const Color(0xFFDDD6FE)),
                 ),
                 child: const Icon(
                   Icons.psychology_rounded,
@@ -713,7 +716,6 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
       backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
         children: [
-          // Background ambient circles identical to Accessibility Menu
           Positioned(
             top: -50,
             left: -50,
@@ -761,7 +763,6 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Main Header
                         Row(
                           children: [
                             Container(
@@ -798,26 +799,24 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                           ),
                         ),
                         const SizedBox(height: 28),
-
-                        // Section 1: Voices
                         _buildSectionHeader(
                           icon: Icons.record_voice_over_rounded,
                           iconColor: const Color(0xFF0284C7),
                           iconBg: const Color(0xFFE0F2FE),
                           title: "Voices",
-                          subtitle: "Select one of the 8 natural voices for real-time speech output.",
+                          subtitle:
+                              "Select one of the 8 natural voices for real-time speech output.",
                         ),
                         const SizedBox(height: 14),
                         _buildVoicesGrid(),
                         const SizedBox(height: 32),
-
-                        // Section 2: Model
                         _buildSectionHeader(
                           icon: Icons.memory_rounded,
                           iconColor: const Color(0xFF10B981),
                           iconBg: const Color(0xFFECFDF5),
                           title: "Model",
-                          subtitle: "Choose the generative AI engine for real-time multimodal interaction.",
+                          subtitle:
+                              "Choose the generative AI engine for real-time multimodal interaction.",
                         ),
                         const SizedBox(height: 14),
                         LayoutBuilder(
@@ -826,7 +825,8 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                             final card1 = _buildModelCard(
                               modelId: 'models/gemini-3.1-flash-live-preview',
                               title: "Techosa 3.1",
-                              subtitle: "Thinking Level • Next-gen speed & quality",
+                              subtitle:
+                                  "Thinking Level • Next-gen speed & quality",
                               badge: "Default",
                               icon: Icons.bolt_rounded,
                               primaryColor: const Color(0xFF0284C7),
@@ -834,9 +834,11 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                               borderColor: const Color(0xFFBAE6FD),
                             );
                             final card2 = _buildModelCard(
-                              modelId: 'models/gemini-2.5-flash-native-audio-latest',
+                              modelId:
+                                  'models/gemini-2.5-flash-native-audio-latest',
                               title: "Techosa 2.5",
-                              subtitle: "Thinking Budget • Native audio legacy model",
+                              subtitle:
+                                  "Thinking Budget • Native audio legacy model",
                               badge: "Legacy",
                               icon: Icons.history_rounded,
                               primaryColor: const Color(0xFF10B981),
@@ -864,14 +866,13 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                           },
                         ),
                         const SizedBox(height: 32),
-
-                        // Section 3: System Instructions
                         _buildSectionHeader(
                           icon: Icons.psychology_rounded,
                           iconColor: const Color(0xFF8B5CF6),
                           iconBg: const Color(0xFFEDE9FE),
                           title: "System Instructions",
-                          subtitle: "Manage agent instructions, persona, and contextual knowledge.",
+                          subtitle:
+                              "Manage agent instructions, persona, and contextual knowledge.",
                         ),
                         const SizedBox(height: 14),
                         _buildInstructionsCard(),

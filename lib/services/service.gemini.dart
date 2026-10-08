@@ -194,7 +194,6 @@ class GeminiService {
           logger.i("Gemini server signalled interrupted.");
         }
 
-        // Extract spoken audio transcription (exact text spoken by the model)
         String? outputTranscriptionText;
         if (serverContent['outputTranscription'] != null &&
             serverContent['outputTranscription']['text'] != null) {
@@ -352,37 +351,41 @@ class GeminiService {
       _amplitudeSubscription = _audioRecorder
           .onAmplitudeChanged(const Duration(milliseconds: 100))
           .listen((amp) {
-        if (_conversationState == ConversationState.speaking || _isMicrophoneLocked) return;
+            if (_conversationState == ConversationState.speaking ||
+                _isMicrophoneLocked)
+              return;
 
-        final double currentAmp = amp.current;
-        onAmplitudeUpdate?.call(currentAmp);
+            final double currentAmp = amp.current;
+            onAmplitudeUpdate?.call(currentAmp);
 
-        if (currentAmp > -20.0) { // Tweaked threshold to -20.0 to better ignore loud background noise
-          _hasUserSpoken = true;
-          if (_conversationState == ConversationState.thinking) {
-            _setConversationState(ConversationState.active);
-            onStatusUpdate?.call("Listening... (Speak naturally)");
-          }
-          _silenceTimer?.cancel();
-          _silenceTimer = null;
-        } else {
-          if (_hasUserSpoken && _conversationState == ConversationState.active && _silenceTimer == null) {
-            _silenceTimer = Timer(const Duration(milliseconds: 2500), () { // Increased to 2.5 seconds to allow natural breaths/pauses
-              if (_conversationState == ConversationState.active) {
-                _setConversationState(ConversationState.thinking);
-                onStatusUpdate?.call("Thinking...");
+            if (currentAmp > -20.0) {
+              _hasUserSpoken = true;
+              if (_conversationState == ConversationState.thinking) {
+                _setConversationState(ConversationState.active);
+                onStatusUpdate?.call("Listening... (Speak naturally)");
               }
-            });
-          }
-        }
-      });
+              _silenceTimer?.cancel();
+              _silenceTimer = null;
+            } else {
+              if (_hasUserSpoken &&
+                  _conversationState == ConversationState.active &&
+                  _silenceTimer == null) {
+                _silenceTimer = Timer(const Duration(milliseconds: 2500), () {
+                  if (_conversationState == ConversationState.active) {
+                    _setConversationState(ConversationState.thinking);
+                    onStatusUpdate?.call("Thinking...");
+                  }
+                });
+              }
+            }
+          });
       _audioStreamSubscription = recordStream.listen((data) {
         if (_channel != null) {
           if (_isMicrophoneLocked ||
               _isPlaying ||
               _isModelResponding ||
               _conversationState == ConversationState.speaking ||
-              _conversationState == ConversationState.thinking) { // STREAM MUTING: Stop sending audio to Gemini while thinking
+              _conversationState == ConversationState.thinking) {
             return;
           }
 
@@ -397,9 +400,9 @@ class GeminiService {
           final payload = {
             "realtimeInput": {
               "audio": {
-                "mimeType": GeminiConstants.micMimeType, 
-                "data": base64Audio
-              }
+                "mimeType": GeminiConstants.micMimeType,
+                "data": base64Audio,
+              },
             },
           };
           _channel!.sink.add(jsonEncode(payload));

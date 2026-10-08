@@ -245,8 +245,11 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
                             showCurrentPin: _showCurrentPin,
                             isSaving: _isSaving,
                             errorMessage: _errorMessage,
-                            onStepChanged: (step) => setState(() => _activeStep = step),
-                            onToggleShowPin: () => setState(() => _showCurrentPin = !_showCurrentPin),
+                            onStepChanged: (step) =>
+                                setState(() => _activeStep = step),
+                            onToggleShowPin: () => setState(
+                              () => _showCurrentPin = !_showCurrentPin,
+                            ),
                             onSavePin: _savePin,
                           ),
                           const SizedBox(height: 24),

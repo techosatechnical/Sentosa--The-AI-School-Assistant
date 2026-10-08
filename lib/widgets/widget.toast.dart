@@ -27,7 +27,9 @@ class SentosaToast {
             ),
           ],
         ),
-        backgroundColor: isError ? Colors.red.shade700 : const Color(0xFF0F172A),
+        backgroundColor: isError
+            ? Colors.red.shade700
+            : const Color(0xFF0F172A),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

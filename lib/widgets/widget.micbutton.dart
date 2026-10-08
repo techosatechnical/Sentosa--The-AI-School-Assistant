@@ -69,9 +69,13 @@ class MicButton extends StatelessWidget {
                 if (isListening || isSpeaking)
                   ...List.generate(24, (index) {
                     final angle = (index * 2 * math.pi) / 24;
-                    final barHeight = (10.0 +
-                        (math.sin((wave * 2 * math.pi) + (index * 0.65)).abs() *
-                            22.0)) * scale;
+                    final barHeight =
+                        (10.0 +
+                            (math
+                                    .sin((wave * 2 * math.pi) + (index * 0.65))
+                                    .abs() *
+                                22.0)) *
+                        scale;
                     final distance = (128.0 + (pulse * 12.0)) * scale;
                     final x = math.cos(angle) * distance;
                     final y = math.sin(angle) * distance;
@@ -142,8 +146,8 @@ class MicButton extends StatelessWidget {
                     isSpeaking
                         ? Icons.volume_up_rounded
                         : (isListening
-                            ? Icons.graphic_eq_rounded
-                            : Icons.mic_rounded),
+                              ? Icons.graphic_eq_rounded
+                              : Icons.mic_rounded),
                     size: 92 * scale,
                     color: isListening || isSpeaking
                         ? activeColor

@@ -23,15 +23,18 @@ class MapData {
       title: json['title'] as String,
       subtitle: json['subtitle'] as String,
       floor: json['floor'] as String? ?? 'Ground Floor',
-      rooms: (json['rooms'] as List<dynamic>?)
+      rooms:
+          (json['rooms'] as List<dynamic>?)
               ?.map((e) => MapRoom.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      corridors: (json['corridors'] as List<dynamic>?)
+      corridors:
+          (json['corridors'] as List<dynamic>?)
               ?.map((e) => MapCorridor.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      pathNodes: (json['pathNodes'] as List<dynamic>?)
+      pathNodes:
+          (json['pathNodes'] as List<dynamic>?)
               ?.map((e) => MapPathNode.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -51,12 +54,7 @@ class MapData {
   }
 }
 
-enum RoomType {
-  standard,
-  atrium,
-  foyer,
-  target,
-}
+enum RoomType { standard, atrium, foyer, target }
 
 class MapRoom {
   final String id;
@@ -139,13 +137,7 @@ class MapCorridor {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'x': x,
-      'y': y,
-      'w': w,
-      'h': h,
-    };
+    return {'id': id, 'x': x, 'y': y, 'w': w, 'h': h};
   }
 }
 

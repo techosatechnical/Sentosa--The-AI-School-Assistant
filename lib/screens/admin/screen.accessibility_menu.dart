@@ -123,7 +123,8 @@ class AccessibilityMenuScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const MapsManagementScreen(mapId: 'principal'),
+              builder: (context) =>
+                  const MapsManagementScreen(mapId: 'principal'),
             ),
           );
         },
@@ -144,7 +145,8 @@ class AccessibilityMenuScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const MapsManagementScreen(mapId: 'library'),
+              builder: (context) =>
+                  const MapsManagementScreen(mapId: 'library'),
             ),
           );
         },
@@ -165,7 +167,8 @@ class AccessibilityMenuScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const MapsManagementScreen(mapId: 'cafeteria'),
+              builder: (context) =>
+                  const MapsManagementScreen(mapId: 'cafeteria'),
             ),
           );
         },

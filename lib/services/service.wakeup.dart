@@ -28,12 +28,12 @@ class WakeWordService {
 
     try {
       if (await exeFile.exists()) {
-        logger.i("Starting Windows native wake-word engine: ${exeFile.path} (Parent PID: $pid)");
-        _process = await Process.start(
-          exeFile.path,
-          [pid.toString()],
-          mode: ProcessStartMode.normal,
+        logger.i(
+          "Starting Windows native wake-word engine: ${exeFile.path} (Parent PID: $pid)",
         );
+        _process = await Process.start(exeFile.path, [
+          pid.toString(),
+        ], mode: ProcessStartMode.normal);
       } else if (await psScript.exists()) {
         logger.i(
           "Starting PowerShell fallback wake-word engine: ${psScript.path} (Parent PID: $pid)",
@@ -120,7 +120,6 @@ class WakeWordService {
           onInterruptDetected?.call(phrase);
           return;
         }
-
 
         if (lower.contains("sentosa") ||
             lower.contains("centosa") ||

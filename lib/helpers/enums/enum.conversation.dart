@@ -1,6 +1,1 @@
-enum ConversationState {
-  standby,
-  active,
-  thinking,
-  speaking,
-}
+enum ConversationState { standby, active, thinking, speaking }

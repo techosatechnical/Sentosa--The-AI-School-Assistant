@@ -179,7 +179,6 @@ class _SystemInstructionScreenState extends State<SystemInstructionScreen> {
       backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
         children: [
-          // Background ambient circles matching accessibility menu
           Positioned(
             top: -50,
             left: -50,
@@ -210,7 +209,10 @@ class _SystemInstructionScreenState extends State<SystemInstructionScreen> {
               children: [
                 _buildTopNav(context),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 8,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -271,7 +273,9 @@ class _SystemInstructionScreenState extends State<SystemInstructionScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0F2942).withValues(alpha: 0.04),
+                            color: const Color(
+                              0xFF0F2942,
+                            ).withValues(alpha: 0.04),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -293,7 +297,8 @@ class _SystemInstructionScreenState extends State<SystemInstructionScreen> {
                                 decoration: const InputDecoration(
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.all(20),
-                                  hintText: 'Enter AI system instruction markdown...',
+                                  hintText:
+                                      'Enter AI system instruction markdown...',
                                 ),
                               )
                             : Markdown(

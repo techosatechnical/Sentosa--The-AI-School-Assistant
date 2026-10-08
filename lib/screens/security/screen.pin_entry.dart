@@ -90,9 +90,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
   void _navigateToAiConfig() {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => const AiConfigScreen(), // Needs to be created
-      ),
+      MaterialPageRoute(builder: (_) => const AiConfigScreen()),
     );
   }
 

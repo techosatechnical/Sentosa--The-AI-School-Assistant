@@ -28,8 +28,8 @@ class HomeSentosaMicSection extends StatelessWidget {
     final activeColor = isSpeaking
         ? const Color(0xFFA855F7)
         : isThinking
-            ? const Color(0xFFF59E0B)
-            : (isListening ? const Color(0xFF38BDF8) : const Color(0xFF10B981));
+        ? const Color(0xFFF59E0B)
+        : (isListening ? const Color(0xFF38BDF8) : const Color(0xFF10B981));
 
     return Container(
       key: const ValueKey('MicSection'),

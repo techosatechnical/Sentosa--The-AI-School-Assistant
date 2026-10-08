@@ -24,7 +24,6 @@ namespace SentosaWake {
             }
 
             try {
-                // Explicitly bind to the en-US recognizer installed on Windows to prevent culture mismatch
                 RecognizerInfo recognizer = null;
                 foreach (RecognizerInfo ri in SpeechRecognitionEngine.InstalledRecognizers()) {
                     if (ri.Culture.Name.Equals("en-US", StringComparison.OrdinalIgnoreCase)) {
@@ -44,13 +43,15 @@ namespace SentosaWake {
                     
                     Choices choices = new Choices();
                     choices.Add(new string[] {
-                        // Exact Wake Words & Greetings
                         "Hey Sentosa",
+                        "Hey Sendosa",
+                        "Hai Sendosa",
+                        "Hi Sendosa",
                         "Hi Sentosa",
+                        "Hello Sendosa",
+                        "Ok Sendosa",
                         "Hello Sentosa",
                         "OK Sentosa",
-                        
-                        // Phonetic & Acoustic Homophones with Prefixes
                         "Hey Centosa",
                         "Hi Centosa",
                         "Hello Centosa",
@@ -67,14 +68,10 @@ namespace SentosaWake {
                         "OK Sen tosa",
                         "Hey Santhosa",
                         "Hey Sendosa",
-                        
-                        // Compound Interrupts (Requires explicit 2-word command to prevent accidental speech cutoff)
                         "Sentosa Stop",
                         "Stop Sentosa",
                         "Cancel Sentosa",
                         "Sentosa Cancel",
-                        
-                        // Admission Direct Commands
                         "Sentosa Admission",
                         "Admission",
                         "Admissions",
@@ -93,10 +90,7 @@ namespace SentosaWake {
                     sre.SpeechRecognized += delegate(object sender, SpeechRecognizedEventArgs e) {
                         if (e.Result != null) {
                             string text = e.Result.Text;
-                            float conf = e.Result.Confidence;
-                            
-                            // Multi-word phrases have higher acoustic entropy; accept >= 0.28
-                            // Single words accept >= 0.32
+                            float conf = e.Result.Confidence;                        
                             bool isMultiWord = text.Contains(" ");
                             float threshold = isMultiWord ? 0.28f : 0.32f;
 

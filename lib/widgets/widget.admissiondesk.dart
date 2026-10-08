@@ -52,7 +52,7 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-              )
+              ),
             ],
           ),
         );
@@ -67,7 +67,10 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
   }
 
   Future<WebviewPermissionDecision> _onPermissionRequested(
-      String url, WebviewPermissionKind kind, bool isUserInitiated) async {
+    String url,
+    WebviewPermissionKind kind,
+    bool isUserInitiated,
+  ) async {
     final decision = await showDialog<WebviewPermissionDecision>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
@@ -216,7 +219,9 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
                                     if (snapshot.hasData &&
                                         snapshot.data == LoadingState.loading) {
                                       return Container(
-                                        color: Colors.white.withValues(alpha: 0.9),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.9,
+                                        ),
                                         child: Center(
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
@@ -244,11 +249,13 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
                                                       BorderRadius.circular(8),
                                                   child: const LinearProgressIndicator(
                                                     minHeight: 6,
-                                                    backgroundColor:
-                                                        Color(0xFFE0F2FE),
+                                                    backgroundColor: Color(
+                                                      0xFFE0F2FE,
+                                                    ),
                                                     valueColor:
-                                                        AlwaysStoppedAnimation<Color>(
-                                                            Colors.blueAccent),
+                                                        AlwaysStoppedAnimation<
+                                                          Color
+                                                        >(Colors.blueAccent),
                                                   ),
                                                 ),
                                               ),
@@ -290,8 +297,10 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
                                         child: const LinearProgressIndicator(
                                           minHeight: 6,
                                           backgroundColor: Color(0xFFE0F2FE),
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                              Colors.blueAccent),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.blueAccent,
+                                              ),
                                         ),
                                       ),
                                     ),

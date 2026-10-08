@@ -42,7 +42,9 @@ class ConfigService {
         _aiPin = data['aiPin']?.toString() ?? _defaultAiPin;
         _voice = data['voice']?.toString() ?? _defaultVoice;
         _model = data['model']?.toString() ?? _defaultModel;
-        _systemInstruction = data['systemInstruction']?.toString() ?? SentosaData.systemInstruction;
+        _systemInstruction =
+            data['systemInstruction']?.toString() ??
+            SentosaData.systemInstruction;
       }
     } catch (e) {
       // Ignore read errors, fall back to default
@@ -81,7 +83,11 @@ class ConfigService {
     await _save();
   }
 
-  Future<void> setAiConfig({String? voice, String? model, String? systemInstruction}) async {
+  Future<void> setAiConfig({
+    String? voice,
+    String? model,
+    String? systemInstruction,
+  }) async {
     if (voice != null) _voice = voice;
     if (model != null) _model = model;
     if (systemInstruction != null) _systemInstruction = systemInstruction;

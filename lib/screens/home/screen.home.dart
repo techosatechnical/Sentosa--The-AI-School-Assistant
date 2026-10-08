@@ -10,6 +10,7 @@ import 'package:sentosa/screens/home/widgets/home_quick_actions.dart';
 import 'package:sentosa/screens/home/widgets/home_speech_bubble.dart';
 import 'package:sentosa/screens/home/widgets/home_sentosa_mic.dart';
 import 'package:sentosa/main.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -126,16 +127,18 @@ class _HomeScreenState extends State<HomeScreen>
     _geminiService.onConversationStateChanged = (state) {
       if (mounted) {
         setState(() {
-          _isListening = state == ConversationState.active || state == ConversationState.thinking;
+          _isListening =
+              state == ConversationState.active ||
+              state == ConversationState.thinking;
           _isThinking = state == ConversationState.thinking;
           _isSpeaking = state == ConversationState.speaking;
-          
+
           if (_isThinking) {
             _gazeNotifier.value = const Offset(0.0, -8.0);
           } else if (_isListening && !_isTrackingPointer) {
-             _gazeNotifier.value = const Offset(0.0, 0.0);
+            _gazeNotifier.value = const Offset(0.0, 0.0);
           }
-          
+
           if (state == ConversationState.standby) {
             _messages.clear();
             _currentModelTurn = "";
@@ -143,14 +146,14 @@ class _HomeScreenState extends State<HomeScreen>
         });
       }
     };
-    
+
     _geminiService.onAmplitudeUpdate = (amp) {
       if (mounted) {
         setState(() {
-           _currentAmplitude = amp;
-           if (amp > -25.0 && _isListening && !_isThinking && !_isReacting) {
-             _gazeNotifier.value = const Offset(0.0, 0.0);
-           }
+          _currentAmplitude = amp;
+          if (amp > -25.0 && _isListening && !_isThinking && !_isReacting) {
+            _gazeNotifier.value = const Offset(0.0, 0.0);
+          }
         });
       }
     };
@@ -570,11 +573,13 @@ class _HomeScreenState extends State<HomeScreen>
                                         SizedBox(height: 8 * heroScale),
                                         HomeSpeechBubble(
                                           aiResponse: _getLatestAIResponse(),
-                                          currentGreeting: _greetings[_greetingIndex],
+                                          currentGreeting:
+                                              _greetings[_greetingIndex],
                                           isSpeaking: _isSpeaking,
                                           waveAnimation: _waveController,
                                           onTap: () {
-                                            if (_getLatestAIResponse().isNotEmpty) {
+                                            if (_getLatestAIResponse()
+                                                .isNotEmpty) {
                                               setState(() {
                                                 _messages.clear();
                                                 _currentModelTurn = "";
@@ -596,7 +601,8 @@ class _HomeScreenState extends State<HomeScreen>
                                         ),
                                         SizedBox(height: 32 * heroScale),
                                         HomeQuickActions(
-                                          onRobotReaction: _triggerRobotReaction,
+                                          onRobotReaction:
+                                              _triggerRobotReaction,
                                         ),
                                         SizedBox(height: 16 * heroScale),
                                       ],
@@ -619,7 +625,6 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
-
 
   Widget _buildRobotHeadHeroSection(double scale) {
     return AnimatedBuilder(
@@ -932,7 +937,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-
   String _getLatestAIResponse() {
     if (_messages.isEmpty) return "";
     for (var i = _messages.length - 1; i >= 0; i--) {
@@ -942,5 +946,4 @@ class _HomeScreenState extends State<HomeScreen>
     }
     return "";
   }
-
 }

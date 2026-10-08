@@ -71,7 +71,11 @@ class _MapsManagementScreenState extends State<MapsManagementScreen> {
       SentosaToast.show(context: context, message: 'Map saved successfully!');
     } catch (e) {
       if (!mounted) return;
-      SentosaToast.show(context: context, message: 'Error saving map: $e', isError: true);
+      SentosaToast.show(
+        context: context,
+        message: 'Error saving map: $e',
+        isError: true,
+      );
     }
   }
 
@@ -530,7 +534,7 @@ class _MapsManagementScreenState extends State<MapsManagementScreen> {
               _mapData?.floor ?? '',
               (v) => setState(() => _mapData?.floor = v),
             ),
-          ]
+          ],
         ],
       ),
     );

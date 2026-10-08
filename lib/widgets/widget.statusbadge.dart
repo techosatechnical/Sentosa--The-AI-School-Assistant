@@ -29,11 +29,11 @@ class StatusBadge extends StatelessWidget {
       child: Text(
         isSpeaking
             ? "SENTOSA SPEAKING — SAY 'HEY SENTOSA' TO INTERRUPT"
-            : isThinking 
-                ? "PROCESSING..."
-                : (isListening
-                      ? "ACTIVE CONVERSATION (SPEAK NATURALLY)"
-                      : "STANDBY — SAY 'HEY SENTOSA' OR TAP MIC"),
+            : isThinking
+            ? "PROCESSING..."
+            : (isListening
+                  ? "ACTIVE CONVERSATION (SPEAK NATURALLY)"
+                  : "STANDBY — SAY 'HEY SENTOSA' OR TAP MIC"),
         style: TextStyle(
           color: activeColor,
           fontSize: 12.5,

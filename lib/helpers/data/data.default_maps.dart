@@ -12,23 +12,113 @@ class DefaultMaps {
   ];
 
   static final List<MapRoom> _baseRooms = [
-    MapRoom(id: "r1", x: 80, y: 150, w: 210, h: 290, title: 'CONFERENCE HALL 1', subtitle: 'Auditorium & Boardroom', tag: 'ROOM A-110 • WING 1'),
-    MapRoom(id: "r2", x: 80, y: 550, w: 210, h: 200, title: 'MEDIA HUB & LIBRARY', subtitle: 'Digital Archive & Silent Study', tag: 'ROOM A-108'),
-    MapRoom(id: "r3", x: 80, y: 830, w: 210, h: 110, title: 'COURTYARD TERRACE', subtitle: 'Sentosa Garden Cafe'),
-    MapRoom(id: "r4", x: 360, y: 150, w: 120, h: 290, title: 'CENTRAL\nATRIUM', subtitle: '', type: RoomType.atrium),
-    MapRoom(id: "r5", x: 580, y: 290, w: 120, h: 140, title: 'VICE PRINCIPAL', subtitle: 'Student Affairs', tag: 'SUITE A-104'),
-    MapRoom(id: "r6", x: 770, y: 150, w: 250, h: 290, title: "PRINCIPAL'S OFFICE", subtitle: "Administration & Governance", tag: 'EXECUTIVE SUITE A-102'),
-    MapRoom(id: "r7", x: 770, y: 550, w: 250, h: 200, title: 'ELEVATOR CORE A', subtitle: 'Vertical Transit: L1 to L4', tag: 'CAMPUS AMENITIES'),
-    MapRoom(id: "r8", x: 770, y: 830, w: 250, h: 110, title: 'SERVICE DESK', subtitle: 'Visitor Reception Desk'),
-    MapRoom(id: "r9", x: 410, y: 840, w: 240, h: 100, title: 'ENTRANCE FOYER & TURNSTILES', subtitle: 'Main South Security Gate & Station #01', type: RoomType.foyer),
+    MapRoom(
+      id: "r1",
+      x: 80,
+      y: 150,
+      w: 210,
+      h: 290,
+      title: 'CONFERENCE HALL 1',
+      subtitle: 'Auditorium & Boardroom',
+      tag: 'ROOM A-110 • WING 1',
+    ),
+    MapRoom(
+      id: "r2",
+      x: 80,
+      y: 550,
+      w: 210,
+      h: 200,
+      title: 'MEDIA HUB & LIBRARY',
+      subtitle: 'Digital Archive & Silent Study',
+      tag: 'ROOM A-108',
+    ),
+    MapRoom(
+      id: "r3",
+      x: 80,
+      y: 830,
+      w: 210,
+      h: 110,
+      title: 'COURTYARD TERRACE',
+      subtitle: 'Sentosa Garden Cafe',
+    ),
+    MapRoom(
+      id: "r4",
+      x: 360,
+      y: 150,
+      w: 120,
+      h: 290,
+      title: 'CENTRAL\nATRIUM',
+      subtitle: '',
+      type: RoomType.atrium,
+    ),
+    MapRoom(
+      id: "r5",
+      x: 580,
+      y: 290,
+      w: 120,
+      h: 140,
+      title: 'VICE PRINCIPAL',
+      subtitle: 'Student Affairs',
+      tag: 'SUITE A-104',
+    ),
+    MapRoom(
+      id: "r6",
+      x: 770,
+      y: 150,
+      w: 250,
+      h: 290,
+      title: "PRINCIPAL'S OFFICE",
+      subtitle: "Administration & Governance",
+      tag: 'EXECUTIVE SUITE A-102',
+    ),
+    MapRoom(
+      id: "r7",
+      x: 770,
+      y: 550,
+      w: 250,
+      h: 200,
+      title: 'ELEVATOR CORE A',
+      subtitle: 'Vertical Transit: L1 to L4',
+      tag: 'CAMPUS AMENITIES',
+    ),
+    MapRoom(
+      id: "r8",
+      x: 770,
+      y: 830,
+      w: 250,
+      h: 110,
+      title: 'SERVICE DESK',
+      subtitle: 'Visitor Reception Desk',
+    ),
+    MapRoom(
+      id: "r9",
+      x: 410,
+      y: 840,
+      w: 240,
+      h: 100,
+      title: 'ENTRANCE FOYER & TURNSTILES',
+      subtitle: 'Main South Security Gate & Station #01',
+      type: RoomType.foyer,
+    ),
   ];
 
   static MapData get principalMap {
-    final rooms = List<MapRoom>.from(_baseRooms.map((e) => MapRoom(
-      id: e.id, x: e.x, y: e.y, w: e.w, h: e.h, title: e.title, subtitle: e.subtitle, tag: e.tag,
-      type: e.id == 'r6' ? RoomType.target : e.type, // Make principal target
-    )));
-    
+    final rooms = List<MapRoom>.from(
+      _baseRooms.map(
+        (e) => MapRoom(
+          id: e.id,
+          x: e.x,
+          y: e.y,
+          w: e.w,
+          h: e.h,
+          title: e.title,
+          subtitle: e.subtitle,
+          tag: e.tag,
+          type: e.id == 'r6' ? RoomType.target : e.type,
+        ),
+      ),
+    );
+
     return MapData(
       id: 'principal',
       title: "Principal's Office",
@@ -46,11 +136,22 @@ class DefaultMaps {
   }
 
   static MapData get libraryMap {
-    final rooms = List<MapRoom>.from(_baseRooms.map((e) => MapRoom(
-      id: e.id, x: e.x, y: e.y, w: e.w, h: e.h, title: e.title, subtitle: e.subtitle, tag: e.tag,
-      type: e.id == 'r2' ? RoomType.target : e.type, // Make library target
-    )));
-    
+    final rooms = List<MapRoom>.from(
+      _baseRooms.map(
+        (e) => MapRoom(
+          id: e.id,
+          x: e.x,
+          y: e.y,
+          w: e.w,
+          h: e.h,
+          title: e.title,
+          subtitle: e.subtitle,
+          tag: e.tag,
+          type: e.id == 'r2' ? RoomType.target : e.type,
+        ),
+      ),
+    );
+
     return MapData(
       id: 'library',
       title: "Media Hub & Library",
@@ -69,11 +170,22 @@ class DefaultMaps {
   }
 
   static MapData get cafeteriaMap {
-    final rooms = List<MapRoom>.from(_baseRooms.map((e) => MapRoom(
-      id: e.id, x: e.x, y: e.y, w: e.w, h: e.h, title: e.title, subtitle: e.subtitle, tag: e.tag,
-      type: e.id == 'r3' ? RoomType.target : e.type, // Make cafeteria target
-    )));
-    
+    final rooms = List<MapRoom>.from(
+      _baseRooms.map(
+        (e) => MapRoom(
+          id: e.id,
+          x: e.x,
+          y: e.y,
+          w: e.w,
+          h: e.h,
+          title: e.title,
+          subtitle: e.subtitle,
+          tag: e.tag,
+          type: e.id == 'r3' ? RoomType.target : e.type,
+        ),
+      ),
+    );
+
     return MapData(
       id: 'cafeteria',
       title: "Sentosa Garden Cafe",

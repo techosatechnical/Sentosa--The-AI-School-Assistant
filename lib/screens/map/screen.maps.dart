@@ -109,7 +109,10 @@ class _MapScreenState extends State<MapScreen>
       decoration: BoxDecoration(
         color: visual.bg,
         borderRadius: BorderRadius.circular(size * 0.34),
-        border: Border.all(color: visual.accent.withValues(alpha: 0.35), width: 1.4),
+        border: Border.all(
+          color: visual.accent.withValues(alpha: 0.35),
+          width: 1.4,
+        ),
         boxShadow: [
           BoxShadow(
             color: visual.accent.withValues(alpha: 0.28),
@@ -141,11 +144,7 @@ class _MapScreenState extends State<MapScreen>
             gradient: const LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFFF2F8FE),
-                Color(0xFFF7FBFF),
-                Color(0xFFE7F1FB),
-              ],
+              colors: [Color(0xFFF2F8FE), Color(0xFFF7FBFF), Color(0xFFE7F1FB)],
             ),
             borderRadius: BorderRadius.circular(36),
             boxShadow: [
@@ -264,7 +263,10 @@ class _MapScreenState extends State<MapScreen>
                   ),
                 ],
               ),
-              child: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F2942)),
+              child: const Icon(
+                Icons.arrow_back_rounded,
+                color: Color(0xFF0F2942),
+              ),
             ),
           ),
         ),
@@ -347,22 +349,55 @@ class _MapScreenState extends State<MapScreen>
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: CustomPaint(painter: CorridorPainter(mapData.corridors)),
+                        child: CustomPaint(
+                          painter: CorridorPainter(mapData.corridors),
+                        ),
                       ),
 
                       ...mapData.rooms.map((room) {
                         if (room.type == RoomType.atrium) {
-                          return _buildAtrium(room.x, room.y, room.w, room.h, room.title);
+                          return _buildAtrium(
+                            room.x,
+                            room.y,
+                            room.w,
+                            room.h,
+                            room.title,
+                          );
                         } else if (room.type == RoomType.foyer) {
-                          return _buildFoyer(room.x, room.y, room.w, room.h, room.title, room.subtitle);
+                          return _buildFoyer(
+                            room.x,
+                            room.y,
+                            room.w,
+                            room.h,
+                            room.title,
+                            room.subtitle,
+                          );
                         } else if (room.type == RoomType.target) {
-                          return _buildTargetRoom(room.x, room.y, room.w, room.h, room.title, room.subtitle, room.tag ?? '');
+                          return _buildTargetRoom(
+                            room.x,
+                            room.y,
+                            room.w,
+                            room.h,
+                            room.title,
+                            room.subtitle,
+                            room.tag ?? '',
+                          );
                         }
-                        return _buildRoom(room.x, room.y, room.w, room.h, room.title, room.subtitle, tag: room.tag);
+                        return _buildRoom(
+                          room.x,
+                          room.y,
+                          room.w,
+                          room.h,
+                          room.title,
+                          room.subtitle,
+                          tag: room.tag,
+                        );
                       }),
 
                       Positioned.fill(
-                        child: CustomPaint(painter: RoutePainter(mapData.pathNodes)),
+                        child: CustomPaint(
+                          painter: RoutePainter(mapData.pathNodes),
+                        ),
                       ),
 
                       if (startNode != null)
@@ -570,7 +605,7 @@ class _MapScreenState extends State<MapScreen>
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 10, color: Color(0xFF434655)),
               ),
-            ]
+            ],
           ],
         ),
       ),
@@ -607,7 +642,14 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  Widget _buildFoyer(double x, double y, double w, double h, String title, String subtitle) {
+  Widget _buildFoyer(
+    double x,
+    double y,
+    double w,
+    double h,
+    String title,
+    String subtitle,
+  ) {
     return Positioned(
       left: x,
       top: y,
@@ -638,14 +680,22 @@ class _MapScreenState extends State<MapScreen>
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 10, color: Color(0xFF434655)),
               ),
-            ]
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTargetRoom(double x, double y, double w, double h, String title, String subtitle, String tag) {
+  Widget _buildTargetRoom(
+    double x,
+    double y,
+    double w,
+    double h,
+    String title,
+    String subtitle,
+    String tag,
+  ) {
     return Positioned(
       left: x,
       top: y,
@@ -669,7 +719,10 @@ class _MapScreenState extends State<MapScreen>
           children: [
             if (tag.isNotEmpty) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFDBE1FF),
                   borderRadius: BorderRadius.circular(8),
@@ -699,7 +752,7 @@ class _MapScreenState extends State<MapScreen>
                 subtitle,
                 style: const TextStyle(fontSize: 12, color: Color(0xFF434655)),
               ),
-            ]
+            ],
           ],
         ),
       ),
@@ -809,7 +862,12 @@ class CorridorPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     for (final corridor in corridors) {
-      final rect = Rect.fromLTWH(corridor.x, corridor.y, corridor.w, corridor.h);
+      final rect = Rect.fromLTWH(
+        corridor.x,
+        corridor.y,
+        corridor.w,
+        corridor.h,
+      );
       canvas.drawRect(rect, paint);
       canvas.drawRect(rect, borderPaint);
     }
@@ -820,8 +878,18 @@ class CorridorPainter extends CustomPainter {
 
     for (int i = 0; i < corridors.length; i++) {
       for (int j = i + 1; j < corridors.length; j++) {
-        final r1 = Rect.fromLTWH(corridors[i].x, corridors[i].y, corridors[i].w, corridors[i].h);
-        final r2 = Rect.fromLTWH(corridors[j].x, corridors[j].y, corridors[j].w, corridors[j].h);
+        final r1 = Rect.fromLTWH(
+          corridors[i].x,
+          corridors[i].y,
+          corridors[i].w,
+          corridors[i].h,
+        );
+        final r2 = Rect.fromLTWH(
+          corridors[j].x,
+          corridors[j].y,
+          corridors[j].w,
+          corridors[j].h,
+        );
         final intersection = r1.intersect(r2);
         if (intersection.width > 0 && intersection.height > 0) {
           canvas.drawRect(intersection.deflate(-1.0), fillPaint);

@@ -650,7 +650,9 @@ Add-Type -TypeDefinition \$source;
                   return Column(
                     children: [
                       InkWell(
-                        onTap: _isLoading ? null : () => _connectToNetwork(ssid, auth, enc),
+                        onTap: _isLoading
+                            ? null
+                            : () => _connectToNetwork(ssid, auth, enc),
                         child: Container(
                           color: isExpanded
                               ? const Color(0xFFF1F5F9)
@@ -772,9 +774,12 @@ Add-Type -TypeDefinition \$source;
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   TextButton(
-                                    onPressed: _isLoading ? null : () => setState(
-                                      () => _selectedSsidForPassword = null,
-                                    ),
+                                    onPressed: _isLoading
+                                        ? null
+                                        : () => setState(
+                                            () =>
+                                                _selectedSsidForPassword = null,
+                                          ),
                                     style: TextButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
@@ -795,7 +800,9 @@ Add-Type -TypeDefinition \$source;
                                   ),
                                   const SizedBox(width: 8),
                                   ElevatedButton(
-                                    onPressed: (_tempPassword.length >= 8 && !_isLoading)
+                                    onPressed:
+                                        (_tempPassword.length >= 8 &&
+                                            !_isLoading)
                                         ? () => _submitPassword(ssid)
                                         : null,
                                     style:

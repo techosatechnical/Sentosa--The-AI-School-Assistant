@@ -10,14 +10,12 @@ class SentosaLogoPainter extends CustomPainter {
     canvas.save();
     canvas.scale(scaleX, scaleY);
 
-
     final path1 = Path();
     path1.moveTo(14, 26);
     path1.cubicTo(14, 18, 20, 10, 28, 8);
     path1.cubicTo(26, 18, 20, 26, 14, 26);
     path1.close();
     canvas.drawPath(path1, Paint()..color = const Color(0xFF00A896));
-
 
     final path2 = Path();
     path2.moveTo(10, 24);
@@ -26,14 +24,12 @@ class SentosaLogoPainter extends CustomPainter {
     path2.close();
     canvas.drawPath(path2, Paint()..color = const Color(0xFF0284C7));
 
-
     final path3 = Path();
     path3.moveTo(34, 22);
     path3.cubicTo(34, 14, 28, 8, 20, 10);
     path3.cubicTo(22, 18, 28, 22, 34, 22);
     path3.close();
     canvas.drawPath(path3, Paint()..color = const Color(0xFFF59E0B));
-
 
     canvas.drawCircle(
       const Offset(24, 24),
@@ -48,9 +44,6 @@ class SentosaLogoPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-
-
-
 class MapGraphicPainter extends CustomPainter {
   final Color dashColor;
   MapGraphicPainter(this.dashColor);
@@ -60,17 +53,22 @@ class MapGraphicPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
 
-
     final dashPaint = Paint()
       ..color = dashColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.2
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawLine(Offset(cx - 24, cy - 20), Offset(cx - 18, cy - 24), dashPaint);
-    canvas.drawLine(Offset(cx + 20, cy - 18), Offset(cx + 26, cy - 14), dashPaint);
-
-
+    canvas.drawLine(
+      Offset(cx - 24, cy - 20),
+      Offset(cx - 18, cy - 24),
+      dashPaint,
+    );
+    canvas.drawLine(
+      Offset(cx + 20, cy - 18),
+      Offset(cx + 26, cy - 14),
+      dashPaint,
+    );
 
     final p1 = Path()
       ..moveTo(cx - 24, cy - 6)
@@ -80,7 +78,6 @@ class MapGraphicPainter extends CustomPainter {
       ..close();
     canvas.drawPath(p1, Paint()..color = const Color(0xFF4ADE80));
 
-
     final p2 = Path()
       ..moveTo(cx - 8, cy - 14)
       ..lineTo(cx + 8, cy - 6)
@@ -88,7 +85,6 @@ class MapGraphicPainter extends CustomPainter {
       ..lineTo(cx - 8, cy + 18)
       ..close();
     canvas.drawPath(p2, Paint()..color = const Color(0xFF22C55E));
-
 
     final p3 = Path()
       ..moveTo(cx + 8, cy - 6)
@@ -98,34 +94,27 @@ class MapGraphicPainter extends CustomPainter {
       ..close();
     canvas.drawPath(p3, Paint()..color = const Color(0xFF38BDF8));
 
-
     canvas.drawOval(
       Rect.fromCenter(center: Offset(cx, cy + 10), width: 14, height: 6),
       Paint()..color = Colors.black.withValues(alpha: 0.18),
     );
 
-
     final pinPath = Path()
-      ..addArc(Rect.fromCircle(center: Offset(cx, cy - 3), radius: 10), -math.pi * 0.8, math.pi * 1.6)
+      ..addArc(
+        Rect.fromCircle(center: Offset(cx, cy - 3), radius: 10),
+        -math.pi * 0.8,
+        math.pi * 1.6,
+      )
       ..lineTo(cx, cy + 9)
       ..close();
-    canvas.drawPath(
-      pinPath,
-      Paint()..color = const Color(0xFFEF4444),
-    );
+    canvas.drawPath(pinPath, Paint()..color = const Color(0xFFEF4444));
 
-
-    canvas.drawCircle(
-      Offset(cx, cy - 3),
-      3.8,
-      Paint()..color = Colors.white,
-    );
+    canvas.drawCircle(Offset(cx, cy - 3), 3.8, Paint()..color = Colors.white);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
 
 class PrincipalGraphicPainter extends CustomPainter {
   final Color dashColor;
@@ -136,23 +125,28 @@ class PrincipalGraphicPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
 
-
     final dashPaint = Paint()
       ..color = dashColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.2
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawLine(Offset(cx - 24, cy - 16), Offset(cx - 18, cy - 22), dashPaint);
-    canvas.drawLine(Offset(cx + 18, cy - 20), Offset(cx + 24, cy - 15), dashPaint);
-
+    canvas.drawLine(
+      Offset(cx - 24, cy - 16),
+      Offset(cx - 18, cy - 22),
+      dashPaint,
+    );
+    canvas.drawLine(
+      Offset(cx + 18, cy - 20),
+      Offset(cx + 24, cy - 15),
+      dashPaint,
+    );
 
     canvas.drawCircle(
       Offset(cx, cy - 12),
       12.5,
       Paint()..color = const Color(0xFF4F46E5),
     );
-
 
     final suitPath = Path()
       ..moveTo(cx - 22, cy + 24)
@@ -161,14 +155,12 @@ class PrincipalGraphicPainter extends CustomPainter {
       ..close();
     canvas.drawPath(suitPath, Paint()..color = const Color(0xFF3730A3));
 
-
     final collarPath = Path()
       ..moveTo(cx - 8, cy + 2)
       ..lineTo(cx + 8, cy + 2)
       ..lineTo(cx, cy + 14)
       ..close();
     canvas.drawPath(collarPath, Paint()..color = Colors.white);
-
 
     final tiePath = Path()
       ..moveTo(cx - 2.5, cy + 4)
@@ -184,7 +176,6 @@ class PrincipalGraphicPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-
 class CafeteriaGraphicPainter extends CustomPainter {
   final Color dashColor;
   CafeteriaGraphicPainter(this.dashColor);
@@ -194,16 +185,22 @@ class CafeteriaGraphicPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
 
-
     final dashPaint = Paint()
       ..color = dashColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.2
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawLine(Offset(cx - 25, cy - 18), Offset(cx - 20, cy - 24), dashPaint);
-    canvas.drawLine(Offset(cx + 20, cy - 22), Offset(cx + 26, cy - 16), dashPaint);
-
+    canvas.drawLine(
+      Offset(cx - 25, cy - 18),
+      Offset(cx - 20, cy - 24),
+      dashPaint,
+    );
+    canvas.drawLine(
+      Offset(cx + 20, cy - 22),
+      Offset(cx + 26, cy - 16),
+      dashPaint,
+    );
 
     canvas.drawCircle(
       Offset(cx, cy),
@@ -220,7 +217,6 @@ class CafeteriaGraphicPainter extends CustomPainter {
       ..strokeWidth = 2.4
       ..strokeCap = StrokeCap.round;
 
-
     final fx = cx - 7;
     canvas.drawLine(Offset(fx, cy - 2), Offset(fx, cy + 14), strokePaint);
     final forkBase = Path()
@@ -228,10 +224,17 @@ class CafeteriaGraphicPainter extends CustomPainter {
       ..cubicTo(fx - 4, cy, fx + 4, cy, fx + 4, cy - 6)
       ..close();
     canvas.drawPath(forkBase, whitePaint);
-    canvas.drawLine(Offset(fx - 3.5, cy - 6), Offset(fx - 3.5, cy - 14), strokePaint);
+    canvas.drawLine(
+      Offset(fx - 3.5, cy - 6),
+      Offset(fx - 3.5, cy - 14),
+      strokePaint,
+    );
     canvas.drawLine(Offset(fx, cy - 6), Offset(fx, cy - 14), strokePaint);
-    canvas.drawLine(Offset(fx + 3.5, cy - 6), Offset(fx + 3.5, cy - 14), strokePaint);
-
+    canvas.drawLine(
+      Offset(fx + 3.5, cy - 6),
+      Offset(fx + 3.5, cy - 14),
+      strokePaint,
+    );
 
     final sx = cx + 7;
     canvas.drawLine(Offset(sx, cy - 2), Offset(sx, cy + 14), strokePaint);
@@ -245,7 +248,6 @@ class CafeteriaGraphicPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-
 class EventsGraphicPainter extends CustomPainter {
   final Color dashColor;
   EventsGraphicPainter(this.dashColor);
@@ -255,16 +257,22 @@ class EventsGraphicPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
 
-
     final dashPaint = Paint()
       ..color = dashColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.2
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawLine(Offset(cx - 24, cy - 20), Offset(cx - 18, cy - 24), dashPaint);
-    canvas.drawLine(Offset(cx + 20, cy - 22), Offset(cx + 26, cy - 18), dashPaint);
-
+    canvas.drawLine(
+      Offset(cx - 24, cy - 20),
+      Offset(cx - 18, cy - 24),
+      dashPaint,
+    );
+    canvas.drawLine(
+      Offset(cx + 20, cy - 22),
+      Offset(cx + 26, cy - 18),
+      dashPaint,
+    );
 
     final calRect = RRect.fromRectAndRadius(
       Rect.fromCenter(center: Offset(cx - 2, cy - 1), width: 44, height: 40),
@@ -279,7 +287,6 @@ class EventsGraphicPainter extends CustomPainter {
         ..strokeWidth = 2.2,
     );
 
-
     final headerClip = Path()..addRRect(calRect);
     canvas.save();
     canvas.clipPath(headerClip);
@@ -289,15 +296,21 @@ class EventsGraphicPainter extends CustomPainter {
     );
     canvas.restore();
 
-
     final ringPaint = Paint()
       ..color = const Color(0xFF9A3412)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(cx - 12, cy - 23), Offset(cx - 12, cy - 16), ringPaint);
-    canvas.drawLine(Offset(cx + 8, cy - 23), Offset(cx + 8, cy - 16), ringPaint);
-
+    canvas.drawLine(
+      Offset(cx - 12, cy - 23),
+      Offset(cx - 12, cy - 16),
+      ringPaint,
+    );
+    canvas.drawLine(
+      Offset(cx + 8, cy - 23),
+      Offset(cx + 8, cy - 16),
+      ringPaint,
+    );
 
     final dotPaint = Paint()..color = const Color(0xFFFDBA74);
     for (int r = 0; r < 2; r++) {
@@ -308,10 +321,13 @@ class EventsGraphicPainter extends CustomPainter {
       }
     }
 
-
     final clockCx = cx + 15;
     final clockCy = cy + 12;
-    canvas.drawCircle(Offset(clockCx, clockCy), 10.5, Paint()..color = const Color(0xFFF59E0B));
+    canvas.drawCircle(
+      Offset(clockCx, clockCy),
+      10.5,
+      Paint()..color = const Color(0xFFF59E0B),
+    );
     canvas.drawCircle(
       Offset(clockCx, clockCy),
       10.5,
@@ -325,14 +341,21 @@ class EventsGraphicPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.8
       ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(clockCx, clockCy), Offset(clockCx, clockCy - 5), handPaint);
-    canvas.drawLine(Offset(clockCx, clockCy), Offset(clockCx + 4, clockCy), handPaint);
+    canvas.drawLine(
+      Offset(clockCx, clockCy),
+      Offset(clockCx, clockCy - 5),
+      handPaint,
+    );
+    canvas.drawLine(
+      Offset(clockCx, clockCy),
+      Offset(clockCx + 4, clockCy),
+      handPaint,
+    );
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
 
 class BusGraphicPainter extends CustomPainter {
   final Color dashColor;
@@ -343,23 +366,28 @@ class BusGraphicPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
 
-
     final dashPaint = Paint()
       ..color = dashColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.2
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawLine(Offset(cx - 24, cy - 18), Offset(cx - 18, cy - 24), dashPaint);
-    canvas.drawLine(Offset(cx + 20, cy - 22), Offset(cx + 26, cy - 18), dashPaint);
-
+    canvas.drawLine(
+      Offset(cx - 24, cy - 18),
+      Offset(cx - 18, cy - 24),
+      dashPaint,
+    );
+    canvas.drawLine(
+      Offset(cx + 20, cy - 22),
+      Offset(cx + 26, cy - 18),
+      dashPaint,
+    );
 
     final busRect = RRect.fromRectAndRadius(
       Rect.fromCenter(center: Offset(cx, cy + 2), width: 44, height: 38),
       const Radius.circular(10),
     );
     canvas.drawRRect(busRect, Paint()..color = const Color(0xFFFBBF24));
-
 
     final mirrorPaint = Paint()..color = const Color(0xFFF59E0B);
     canvas.drawRRect(
@@ -377,7 +405,6 @@ class BusGraphicPainter extends CustomPainter {
       mirrorPaint,
     );
 
-
     final windRect = RRect.fromRectAndRadius(
       Rect.fromCenter(center: Offset(cx, cy - 5), width: 34, height: 16),
       const Radius.circular(4),
@@ -391,8 +418,11 @@ class BusGraphicPainter extends CustomPainter {
         ..strokeWidth = 2,
     );
 
-
-    canvas.drawCircle(Offset(cx - 12, cy + 10), 3.6, Paint()..color = Colors.white);
+    canvas.drawCircle(
+      Offset(cx - 12, cy + 10),
+      3.6,
+      Paint()..color = Colors.white,
+    );
     canvas.drawCircle(
       Offset(cx - 12, cy + 10),
       3.6,
@@ -401,7 +431,11 @@ class BusGraphicPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2,
     );
-    canvas.drawCircle(Offset(cx + 12, cy + 10), 3.6, Paint()..color = Colors.white);
+    canvas.drawCircle(
+      Offset(cx + 12, cy + 10),
+      3.6,
+      Paint()..color = Colors.white,
+    );
     canvas.drawCircle(
       Offset(cx + 12, cy + 10),
       3.6,
@@ -410,7 +444,6 @@ class BusGraphicPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2,
     );
-
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -425,7 +458,6 @@ class BusGraphicPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-
 class AdmissionGraphicPainter extends CustomPainter {
   final Color dashColor;
   AdmissionGraphicPainter(this.dashColor);
@@ -435,16 +467,22 @@ class AdmissionGraphicPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
 
-
     final dashPaint = Paint()
       ..color = dashColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.2
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawLine(Offset(cx - 24, cy - 20), Offset(cx - 18, cy - 24), dashPaint);
-    canvas.drawLine(Offset(cx + 20, cy - 22), Offset(cx + 26, cy - 18), dashPaint);
-
+    canvas.drawLine(
+      Offset(cx - 24, cy - 20),
+      Offset(cx - 18, cy - 24),
+      dashPaint,
+    );
+    canvas.drawLine(
+      Offset(cx + 20, cy - 22),
+      Offset(cx + 26, cy - 18),
+      dashPaint,
+    );
 
     final docRect = RRect.fromRectAndRadius(
       Rect.fromCenter(center: Offset(cx - 3, cy - 1), width: 38, height: 44),
@@ -452,20 +490,26 @@ class AdmissionGraphicPainter extends CustomPainter {
     );
     canvas.drawRRect(docRect, Paint()..color = const Color(0xFF06B6D4));
 
-
     final linePaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.9)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(cx - 14, cy - 11), Offset(cx + 2, cy - 11), linePaint);
+    canvas.drawLine(
+      Offset(cx - 14, cy - 11),
+      Offset(cx + 2, cy - 11),
+      linePaint,
+    );
     canvas.drawLine(Offset(cx - 14, cy - 3), Offset(cx + 8, cy - 3), linePaint);
     canvas.drawLine(Offset(cx - 14, cy + 5), Offset(cx - 2, cy + 5), linePaint);
 
-
     final plusCx = cx + 13;
     final plusCy = cy + 13;
-    canvas.drawCircle(Offset(plusCx, plusCy), 11.5, Paint()..color = const Color(0xFF0891B2));
+    canvas.drawCircle(
+      Offset(plusCx, plusCy),
+      11.5,
+      Paint()..color = const Color(0xFF0891B2),
+    );
     canvas.drawCircle(
       Offset(plusCx, plusCy),
       11.5,
@@ -479,14 +523,21 @@ class AdmissionGraphicPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.4
       ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(plusCx - 5, plusCy), Offset(plusCx + 5, plusCy), pPaint);
-    canvas.drawLine(Offset(plusCx, plusCy - 5), Offset(plusCx, plusCy + 5), pPaint);
+    canvas.drawLine(
+      Offset(plusCx - 5, plusCy),
+      Offset(plusCx + 5, plusCy),
+      pPaint,
+    );
+    canvas.drawLine(
+      Offset(plusCx, plusCy - 5),
+      Offset(plusCx, plusCy + 5),
+      pPaint,
+    );
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
 
 class TalkGraphicPainter extends CustomPainter {
   final Color dashColor;
@@ -497,16 +548,22 @@ class TalkGraphicPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
 
-
     final dashPaint = Paint()
       ..color = dashColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.2
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawLine(Offset(cx - 24, cy - 18), Offset(cx - 18, cy - 24), dashPaint);
-    canvas.drawLine(Offset(cx + 20, cy - 22), Offset(cx + 26, cy - 18), dashPaint);
-
+    canvas.drawLine(
+      Offset(cx - 24, cy - 18),
+      Offset(cx - 18, cy - 24),
+      dashPaint,
+    );
+    canvas.drawLine(
+      Offset(cx + 20, cy - 22),
+      Offset(cx + 26, cy - 18),
+      dashPaint,
+    );
 
     final headCx = cx - 6;
     canvas.drawCircle(
@@ -515,14 +572,12 @@ class TalkGraphicPainter extends CustomPainter {
       Paint()..color = const Color(0xFF6366F1),
     );
 
-
     final suitPath = Path()
       ..moveTo(headCx - 20, cy + 22)
       ..cubicTo(headCx - 20, cy + 5, headCx - 10, cy + 2, headCx, cy + 2)
       ..cubicTo(headCx + 10, cy + 2, headCx + 18, cy + 5, headCx + 18, cy + 22)
       ..close();
     canvas.drawPath(suitPath, Paint()..color = const Color(0xFF4F46E5));
-
 
     final textPainter = TextPainter(
       text: const TextSpan(
@@ -542,7 +597,6 @@ class TalkGraphicPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-
 class QuestionsGraphicPainter extends CustomPainter {
   final Color dashColor;
   QuestionsGraphicPainter(this.dashColor);
@@ -552,16 +606,22 @@ class QuestionsGraphicPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
 
-
     final dashPaint = Paint()
       ..color = dashColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.2
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawLine(Offset(cx - 24, cy - 18), Offset(cx - 18, cy - 24), dashPaint);
-    canvas.drawLine(Offset(cx + 20, cy - 22), Offset(cx + 26, cy - 18), dashPaint);
-
+    canvas.drawLine(
+      Offset(cx - 24, cy - 18),
+      Offset(cx - 18, cy - 24),
+      dashPaint,
+    );
+    canvas.drawLine(
+      Offset(cx + 20, cy - 22),
+      Offset(cx + 26, cy - 18),
+      dashPaint,
+    );
 
     final backBubble = RRect.fromRectAndRadius(
       Rect.fromCenter(center: Offset(cx + 6, cy - 6), width: 34, height: 26),
@@ -569,13 +629,11 @@ class QuestionsGraphicPainter extends CustomPainter {
     );
     canvas.drawRRect(backBubble, Paint()..color = const Color(0xFFA7F3D0));
 
-
     final frontBubble = RRect.fromRectAndRadius(
       Rect.fromCenter(center: Offset(cx - 4, cy + 4), width: 38, height: 28),
       const Radius.circular(10),
     );
     canvas.drawRRect(frontBubble, Paint()..color = const Color(0xFF10B981));
-
 
     final tailPath = Path()
       ..moveTo(cx + 4, cy + 14)
@@ -583,7 +641,6 @@ class QuestionsGraphicPainter extends CustomPainter {
       ..lineTo(cx + 12, cy + 14)
       ..close();
     canvas.drawPath(tailPath, Paint()..color = const Color(0xFF10B981));
-
 
     final linePaint = Paint()
       ..color = Colors.white

@@ -8,20 +8,24 @@ try {
     if ($recognizer) {
         $sre = New-Object System.Speech.Recognition.SpeechRecognitionEngine($recognizer)
         $targetCulture = $recognizer.Culture
-    } else {
+    }
+    else {
         $sre = New-Object System.Speech.Recognition.SpeechRecognitionEngine
         $targetCulture = [System.Globalization.CultureInfo]::GetCultureInfo("en-US")
     }
 
     $choices = New-Object System.Speech.Recognition.Choices
     $choices.Add([string[]]@(
-        "Sentosa", "Hey Sentosa", "Hi Sentosa", "Hello Sentosa", "OK Sentosa",
-        "Centosa", "Santosa", "San tosa", "Sen tosa", "Santhosa", "Sendosa",
-        "Hey Centosa", "Hi Centosa", "Hello Centosa",
-        "Hey Santosa", "Hi Santosa", "Hello Santosa",
-        "Sentosa Stop", "Stop Sentosa", "Cancel Sentosa", "Sentosa Cancel",
-        "Sentosa Admission", "Admission", "Admissions", "Admission procedure", "Start admission"
-    ))
+            "Sentosa", "Hey Sentosa", "Hi Sentosa", "Hello Sentosa", "OK Sentosa", "Hello Sendosa",
+            "Ok Sendosa",
+            "Centosa", "Santosa", "San tosa", "Sen tosa", "Santhosa", "Sendosa",
+            "Hey Centosa", "Hi Centosa", "Hello Centosa",
+            "Hey Santosa", "Hi Santosa", "Hello Santosa", "Hey Sendosa",
+            "Hai Sendosa",
+            "Hi Sendosa",
+            "Sentosa Stop", "Stop Sentosa", "Cancel Sentosa", "Sentosa Cancel",
+            "Sentosa Admission", "Admission", "Admissions", "Admission procedure", "Start admission"
+        ))
     $gb = New-Object System.Speech.Recognition.GrammarBuilder($choices)
     $gb.Culture = $targetCulture
     $g = New-Object System.Speech.Recognition.Grammar($gb)
@@ -54,9 +58,11 @@ try {
             Remove-Event -EventIdentifier $speechEvent.EventIdentifier
         }
     }
-} catch {
+}
+catch {
     Write-Output "ERROR: $($_.Exception.Message)"
-} finally {
+}
+finally {
     if ($sre) {
         $sre.Dispose()
     }
