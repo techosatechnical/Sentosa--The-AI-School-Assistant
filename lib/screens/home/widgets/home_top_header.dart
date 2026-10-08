@@ -91,7 +91,7 @@ class HomeTopHeader extends StatelessWidget {
                             ),
                           ),
                           child: const Text(
-                            "Refresh",
+                            "Restart",
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
