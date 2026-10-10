@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:sentosa/helpers/models/model.map_data.dart';
-import 'package:sentosa/services/service.storage.dart';
-import 'package:sentosa/helpers/data/data.default_maps.dart';
-import 'package:sentosa/widgets/widget.painters.dart';
+import 'package:nira/helpers/models/model.map_data.dart';
+import 'package:nira/services/service.storage.dart';
+import 'package:nira/helpers/data/data.default_maps.dart';
+import 'package:nira/widgets/widget.painters.dart';
 
 class MapScreen extends StatefulWidget {
   final String? mapId;
@@ -801,7 +801,7 @@ class _MapScreenState extends State<MapScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'Sentosa 2.0',
+            'NIRA AI 2.0',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,

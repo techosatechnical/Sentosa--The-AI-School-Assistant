@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:record/record.dart';
-import 'package:sentosa/helpers/constants/constants.dart';
-import 'package:sentosa/helpers/enums/enums.dart';
+import 'package:nira/helpers/constants/constants.dart';
+import 'package:nira/helpers/enums/enums.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:sentosa/services/services.dart';
+import 'package:nira/services/services.dart';
 
 class GeminiService {
   WebSocketChannel? _channel;
@@ -247,7 +247,7 @@ class GeminiService {
                     _setConversationState(ConversationState.speaking);
                     onSpeakingStateChanged?.call(true);
                     onStatusUpdate?.call(
-                      "Sentosa Speaking... (Say 'Stop Sentosa' to interrupt)",
+                      "NIRA AI Speaking... (Say 'Stop Nira' to interrupt)",
                     );
                     logger.i("Started SoLoud buffer stream playback.");
                   } catch (e, stack) {
@@ -301,7 +301,7 @@ class GeminiService {
     _gracePeriodTimer?.cancel();
     _gracePeriodTimer = Timer(GeminiConstants.acousticGracePeriod, () {
       _isMicrophoneLocked = false;
-      onStatusUpdate?.call("Listening... (Speak naturally or say 'Sentosa')");
+      onStatusUpdate?.call("Listening... (Speak naturally or say 'Nira')");
       logger.i(
         "Audio playback and acoustic grace period completed. Microphone unlocked.",
       );
@@ -442,7 +442,7 @@ class GeminiService {
     _isMicrophoneLocked = false;
     _setConversationState(ConversationState.standby);
     onSpeakingStateChanged?.call(false);
-    onStatusUpdate?.call("Say 'Sentosa' or tap mic");
+    onStatusUpdate?.call("Say 'Nira' or tap mic");
     onDisconnected?.call();
     logger.i("GeminiService disconnected (Standby).");
   }

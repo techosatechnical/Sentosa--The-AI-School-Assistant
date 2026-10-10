@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:sentosa/screens/home/widgets/widget.wifi_indicator.dart';
+import 'package:nira/screens/home/widgets/widget.wifi_indicator.dart';
 
 class HomeTopHeader extends StatelessWidget {
   final DateTime currentTime;
@@ -193,7 +193,7 @@ class HomeTopHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "Sentosa",
+                    "NIRA AI",
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
@@ -253,7 +253,7 @@ class HomeTopHeader extends StatelessWidget {
                     onTap: () {
                       _showConfirmationDialog(
                         context,
-                        "Shut Down Sentosa",
+                        "Shut Down NIRA AI",
                         "Are you sure you want to shut down the system? This action will power off the kiosk.",
                         "Shut Down",
                         const Color(0xFFEF4444),

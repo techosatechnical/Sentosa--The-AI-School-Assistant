@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sentosa/services/services.dart';
-import 'package:sentosa/helpers/enums/enums.dart';
-import 'package:sentosa/screens/home/widgets/home_top_header.dart';
-import 'package:sentosa/screens/home/widgets/home_bottom_bar.dart';
-import 'package:sentosa/screens/home/widgets/home_quick_actions.dart';
-import 'package:sentosa/screens/home/widgets/home_speech_bubble.dart';
-import 'package:sentosa/screens/home/widgets/home_sentosa_mic.dart';
-import 'package:sentosa/main.dart';
+import 'package:nira/services/services.dart';
+import 'package:nira/helpers/enums/enums.dart';
+import 'package:nira/screens/home/widgets/home_top_header.dart';
+import 'package:nira/screens/home/widgets/home_bottom_bar.dart';
+import 'package:nira/screens/home/widgets/home_quick_actions.dart';
+import 'package:nira/screens/home/widgets/home_speech_bubble.dart';
+import 'package:nira/screens/home/widgets/home_sentosa_mic.dart';
+import 'package:nira/main.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isSpeaking = false;
   bool _isThinking = false;
   double _currentAmplitude = -50.0;
-  String _statusText = "Say 'Hey Sentosa' or tap mic";
+  String _statusText = "Say 'Hey Nira' or tap mic";
   final List<Map<String, String>> _messages = [];
   String _currentModelTurn = "";
 
@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen>
   final List<Map<String, String>> _greetings = [
     {
       'hi': 'Hi! 👋',
-      'text': 'I’m Sentosa, your school assistant.\nHow can I help you today?',
+      'text': 'I’m NIRA AI, your school assistant.\nHow can I help you today?',
     },
     {
       'hi': 'Welcome back! ✨',
@@ -164,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen>
           _isListening = false;
           _isSpeaking = false;
           _isThinking = false;
-          _statusText = "Say 'Hey Sentosa' or tap mic";
+          _statusText = "Say 'Hey Nira' or tap mic";
         });
       }
     };
@@ -338,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen>
         _isListening = false;
         _isSpeaking = false;
         _isThinking = false;
-        _statusText = "Say 'Hey Sentosa' or tap mic";
+        _statusText = "Say 'Hey Nira' or tap mic";
       });
       await _geminiService.disconnect();
     } else {

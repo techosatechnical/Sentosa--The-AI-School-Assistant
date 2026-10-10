@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:sentosa/services/services.dart';
+import 'package:nira/services/services.dart';
 
 class WakeWordService {
   Process? _process;
@@ -19,11 +19,11 @@ class WakeWordService {
     if (_isRunning) return;
 
     try {
-      await Process.run('taskkill', ['/F', '/IM', 'sentosa_wake.exe']);
+      await Process.run('taskkill', ['/F', '/IM', 'nira_wake.exe']);
     } catch (_) {}
 
     final currentDir = Directory.current.path;
-    final exeFile = File('$currentDir/windows/wake_word/sentosa_wake.exe');
+    final exeFile = File('$currentDir/windows/wake_word/nira_wake.exe');
     final psScript = File('$currentDir/windows/wake_word/wake_fallback.ps1');
 
     try {
@@ -55,7 +55,7 @@ class WakeWordService {
       }
 
       _isRunning = true;
-      onStatusUpdate?.call("Wake-word engine active ('Hey Sentosa')");
+      onStatusUpdate?.call("Wake-word engine active ('Hey Nira')");
 
       _stdoutSub = _process!.stdout
           .transform(utf8.decoder)
@@ -97,9 +97,9 @@ class WakeWordService {
 
     if (line.startsWith("READY")) {
       logger.i(
-        "Windows Speech Recognizer is READY and listening for 'Hey Sentosa'! ($line)",
+        "Windows Speech Recognizer is READY and listening for 'Hey Nira'! ($line)",
       );
-      onStatusUpdate?.call("Listening for 'Hey Sentosa'...");
+      onStatusUpdate?.call("Listening for 'Hey Nira'...");
       return;
     }
 
@@ -121,12 +121,12 @@ class WakeWordService {
           return;
         }
 
-        if (lower.contains("sentosa") ||
-            lower.contains("centosa") ||
-            lower.contains("santosa") ||
-            lower.contains("tosa") ||
+        if (lower.contains("nira") ||
+            lower.contains("neera") ||
+            lower.contains("meera") ||
+            lower.contains("mira") ||
             lower.contains("start")) {
-          onWakeWordDetected?.call("Sentosa", confidence);
+          onWakeWordDetected?.call("Nira", confidence);
         }
       }
     }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:sentosa/screens/admin/screen.maps_management.dart';
-import 'package:sentosa/widgets/widget.actioncard.dart';
-import 'package:sentosa/widgets/widget.painters.dart';
+import 'package:nira/screens/admin/screen.maps_management.dart';
+import 'package:nira/widgets/widget.actioncard.dart';
+import 'package:nira/widgets/widget.painters.dart';
 
 class AccessibilityMenuScreen extends StatelessWidget {
   const AccessibilityMenuScreen({super.key});

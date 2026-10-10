@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sentosa/screens/home/screen.home.dart';
+import 'package:nira/screens/home/screen.home.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -9,7 +9,7 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  final String text = "SENTOSA";
+  final String text = "NIRA AI";
   final List<bool> _visibleLetters = List.generate(7, (index) => false);
   bool _readyToTransition = false;
 

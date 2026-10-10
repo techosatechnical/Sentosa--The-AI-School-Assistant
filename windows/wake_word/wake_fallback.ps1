@@ -16,15 +16,13 @@ try {
 
     $choices = New-Object System.Speech.Recognition.Choices
     $choices.Add([string[]]@(
-            "Sentosa", "Hey Sentosa", "Hi Sentosa", "Hello Sentosa", "OK Sentosa", "Hello Sendosa",
-            "Ok Sendosa",
-            "Centosa", "Santosa", "San tosa", "Sen tosa", "Santhosa", "Sendosa",
-            "Hey Centosa", "Hi Centosa", "Hello Centosa",
-            "Hey Santosa", "Hi Santosa", "Hello Santosa", "Hey Sendosa",
-            "Hai Sendosa",
-            "Hi Sendosa",
-            "Sentosa Stop", "Stop Sentosa", "Cancel Sentosa", "Sentosa Cancel",
-            "Sentosa Admission", "Admission", "Admissions", "Admission procedure", "Start admission"
+            "Nira", "Hey Nira", "Hi Nira", "Hello Nira", "OK Nira", "Hey Nire",
+            "Hi Nire", "Hello Nire", "OK Nire",
+            "Hey Neera", "Hi Neera", "Hello Neera", "OK Neera",
+            "Hey Meera", "Hi Meera", "Hello Meera",
+            "Hey Mira", "Hi Mira", "Hello Mira",
+            "Nira Stop", "Stop Nira", "Cancel Nira", "Nira Cancel",
+            "Nira Admission", "Admission", "Admissions", "Admission procedure", "Start admission"
         ))
     $gb = New-Object System.Speech.Recognition.GrammarBuilder($choices)
     $gb.Culture = $targetCulture

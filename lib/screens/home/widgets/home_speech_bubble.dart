@@ -117,7 +117,7 @@ class HomeSpeechBubble extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        isSpeaking ? "Sentosa Speaking..." : "Sentosa",
+                        isSpeaking ? "NIRA AI Speaking..." : "NIRA AI",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,

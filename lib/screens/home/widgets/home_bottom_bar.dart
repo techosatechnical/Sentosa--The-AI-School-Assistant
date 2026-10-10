@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sentosa/screens/security/screen.pin_entry.dart';
+import 'package:nira/screens/security/screen.pin_entry.dart';
 
 class HomeBottomBar extends StatelessWidget {
   const HomeBottomBar({super.key});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:sentosa/widgets/widgets.dart';
-import 'package:sentosa/widgets/widget.admissiondesk.dart';
-import 'package:sentosa/screens/map/screen.maps.dart';
+import 'package:nira/widgets/widgets.dart';
+import 'package:nira/widgets/widget.admissiondesk.dart';
+import 'package:nira/screens/map/screen.maps.dart';
 
 class HomeQuickActions extends StatelessWidget {
   final VoidCallback onRobotReaction;

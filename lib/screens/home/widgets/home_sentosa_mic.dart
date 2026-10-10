@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sentosa/widgets/widgets.dart';
+import 'package:nira/widgets/widgets.dart';
 
 class HomeSentosaMicSection extends StatelessWidget {
   final bool isListening;

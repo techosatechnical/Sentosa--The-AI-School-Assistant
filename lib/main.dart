@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sentosa/screens/splash/screen.splash.dart';
-import 'package:sentosa/services/service.config.dart';
+import 'package:nira/screens/splash/screen.splash.dart';
+import 'package:nira/services/service.config.dart';
 import 'package:window_manager/window_manager.dart';
 
 Future<void> main() async {
@@ -29,7 +29,7 @@ class SentosaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Sentosa',
+      title: 'NIRA AI',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,

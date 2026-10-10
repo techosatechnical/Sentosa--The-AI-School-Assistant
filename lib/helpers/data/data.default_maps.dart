@@ -1,4 +1,4 @@
-import 'package:sentosa/helpers/models/model.map_data.dart';
+import 'package:nira/helpers/models/model.map_data.dart';
 
 class DefaultMaps {
   static final List<MapCorridor> _baseCorridors = [
@@ -39,7 +39,7 @@ class DefaultMaps {
       w: 210,
       h: 110,
       title: 'COURTYARD TERRACE',
-      subtitle: 'Sentosa Garden Cafe',
+      subtitle: 'Nira Garden Cafe',
     ),
     MapRoom(
       id: "r4",
@@ -188,7 +188,7 @@ class DefaultMaps {
 
     return MapData(
       id: 'cafeteria',
-      title: "Sentosa Garden Cafe",
+      title: "Nira Garden Cafe",
       subtitle: "Courtyard Terrace Entrance",
       rooms: rooms,
       corridors: _baseCorridors,

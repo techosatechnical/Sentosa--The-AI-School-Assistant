@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:sentosa/services/service.config.dart';
-import 'package:sentosa/widgets/widget.toast.dart';
+import 'package:nira/services/service.config.dart';
+import 'package:nira/widgets/widget.toast.dart';
 
 class SystemInstructionScreen extends StatefulWidget {
   const SystemInstructionScreen({super.key});

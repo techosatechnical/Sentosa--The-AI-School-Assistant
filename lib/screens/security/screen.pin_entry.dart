@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'package:sentosa/screens/admin/screen.accessibility_menu.dart';
-import 'package:sentosa/screens/security/screen.change_pin.dart';
-import 'package:sentosa/screens/security/screen.ai_config.dart';
-import 'package:sentosa/services/service.config.dart';
+import 'package:nira/screens/admin/screen.accessibility_menu.dart';
+import 'package:nira/screens/security/screen.change_pin.dart';
+import 'package:nira/screens/security/screen.ai_config.dart';
+import 'package:nira/services/service.config.dart';
 
 class PinEntryScreen extends StatefulWidget {
   const PinEntryScreen({super.key});
@@ -150,7 +150,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    "Are you sure you want to exit Sentosa and launch Windows Explorer?",
+                    "Are you sure you want to exit NIRA AI and launch Windows Explorer?",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
@@ -525,7 +525,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 48),
                             child: Text(
-                              'Enter your 6-digit security PIN to access the Sentosa enterprise console.',
+                              'Enter your 6-digit security PIN to access the NIRA AI enterprise console.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 14,
@@ -604,7 +604,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Secured with Sentosa 2.0',
+                              'Secured with NIRA AI 2.0',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -615,7 +615,7 @@ class _PinEntryScreenState extends State<PinEntryScreen>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Sentosa Desktop Runtime • Windows Mode',
+                          'NIRA AI Desktop Runtime • Windows Mode',
                           style: TextStyle(
                             fontSize: 10,
                             color: Colors.grey.shade400,

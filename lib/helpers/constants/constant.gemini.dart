@@ -1,4 +1,4 @@
-import 'package:sentosa/services/service.config.dart';
+import 'package:nira/services/service.config.dart';
 
 class GeminiConstants {
   static const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');

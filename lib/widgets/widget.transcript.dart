@@ -98,7 +98,7 @@ class _TranscriptViewState extends State<TranscriptView> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "Speak naturally. Say 'Sentosa' aloud anytime or tap the microphone above.",
+                    "Speak naturally. Say 'NIRA AI' aloud anytime or tap the microphone above.",
                     style: TextStyle(
                       fontSize: 12.5,
                       color: Colors.white.withValues(alpha: 0.65),
@@ -242,7 +242,7 @@ class _TranscriptViewState extends State<TranscriptView> {
                                 : CrossAxisAlignment.start,
                             children: [
                               Text(
-                                isUser ? 'You' : 'Sentosa',
+                                isUser ? 'You' : 'NIRA AI',
                                 style: TextStyle(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w800,

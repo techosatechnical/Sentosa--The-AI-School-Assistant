@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'package:sentosa/helpers/models/model.map_data.dart';
-import 'package:sentosa/services/service.storage.dart';
-import 'package:sentosa/widgets/widget.toast.dart';
-import 'package:sentosa/helpers/data/data.default_maps.dart';
+import 'package:nira/helpers/models/model.map_data.dart';
+import 'package:nira/services/service.storage.dart';
+import 'package:nira/widgets/widget.toast.dart';
+import 'package:nira/helpers/data/data.default_maps.dart';
 
 class MapsManagementScreen extends StatefulWidget {
   final String? mapId;

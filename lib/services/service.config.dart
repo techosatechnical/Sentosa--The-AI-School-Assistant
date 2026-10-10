@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as p;
-import 'package:sentosa/helpers/data/data.sentosa.dart';
+import 'package:nira/helpers/data/data.sentosa.dart';
 import 'service.storage.dart';
 
 class ConfigService {

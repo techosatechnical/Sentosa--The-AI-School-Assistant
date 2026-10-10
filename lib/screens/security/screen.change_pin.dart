@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:sentosa/screens/security/screen.pin_entry.dart';
-import 'package:sentosa/services/service.config.dart';
+import 'package:nira/screens/security/screen.pin_entry.dart';
+import 'package:nira/services/service.config.dart';
 import 'widgets/change_pin_backdrop.dart';
 import 'widgets/change_pin_top_nav.dart';
 import 'widgets/change_pin_input_section.dart';
 import 'widgets/change_pin_keypad.dart';
-import 'package:sentosa/widgets/widget.toast.dart';
+import 'package:nira/widgets/widget.toast.dart';
 
 class ChangePinScreen extends StatefulWidget {
   final bool isAiPin;
@@ -260,7 +260,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
                           ),
                           const SizedBox(height: 24),
                           Text(
-                            'Sentosa Windows Client • Terminal ID #8841-A • TLS 1.3 Encrypted',
+                            'NIRA AI Windows Client • Terminal ID #8841-A • TLS 1.3 Encrypted',
                             style: TextStyle(
                               fontSize: 10,
                               color: Colors.grey.shade400,

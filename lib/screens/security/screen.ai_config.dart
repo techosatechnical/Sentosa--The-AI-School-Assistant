@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:sentosa/services/service.config.dart';
-import 'package:sentosa/screens/security/screen.system_instructions.dart';
-import 'package:sentosa/screens/security/screen.pin_entry.dart';
-import 'package:sentosa/widgets/widget.toast.dart';
+import 'package:nira/services/service.config.dart';
+import 'package:nira/screens/security/screen.system_instructions.dart';
+import 'package:nira/screens/security/screen.pin_entry.dart';
+import 'package:nira/widgets/widget.toast.dart';
 
 class AiConfigScreen extends StatefulWidget {
   const AiConfigScreen({super.key});
