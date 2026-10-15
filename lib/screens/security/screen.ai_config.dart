@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nira/services/service.config.dart';
 import 'package:nira/screens/security/screen.system_instructions.dart';
+import 'package:nira/screens/security/screen.diagnostic_logs.dart';
 import 'package:nira/screens/security/screen.pin_entry.dart';
 import 'package:nira/widgets/widget.toast.dart';
 
@@ -648,6 +649,104 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
     );
   }
 
+  Widget _buildDiagnosticsCard() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const DiagnosticLogsScreen(),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(22),
+        splashColor: const Color(0xFFF59E0B).withValues(alpha: 0.18),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFDF5),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFFEF3C7), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F2942).withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFFEF3C7),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: const Icon(
+                  Icons.receipt_long_rounded,
+                  color: Color(0xFFD97706),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      "Diagnostic & Event Logs",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F2942),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      "View saved connection telemetry, API quota errors, and WebSocket events.",
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFD97706),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFD97706).withValues(alpha: 0.35),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPersistentBottomBar() {
     return Container(
       width: double.infinity,
@@ -876,7 +975,18 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                         ),
                         const SizedBox(height: 14),
                         _buildInstructionsCard(),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 32),
+                        _buildSectionHeader(
+                          icon: Icons.receipt_long_rounded,
+                          iconColor: const Color(0xFFD97706),
+                          iconBg: const Color(0xFFFEF3C7),
+                          title: "Telemetry & Logs",
+                          subtitle:
+                              "Review live WebSocket telemetry, quotas, and persistent diagnostic logs.",
+                        ),
+                        const SizedBox(height: 14),
+                        _buildDiagnosticsCard(),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),

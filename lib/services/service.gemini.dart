@@ -71,7 +71,12 @@ class GeminiService {
     _inactivityTimer = Timer(GeminiConstants.inactivityTimeout, () {
       if (_conversationState == ConversationState.active && !_isPlaying) {
         logger.i(
-          "Inactivity timeout (${GeminiConstants.inactivityTimeout.inSeconds}s). Returning to Standby mode.",
+          "⏱️ INACTIVITY TIMEOUT: ${GeminiConstants.inactivityTimeout.inSeconds}s elapsed without speech. Returning to Standby mode.",
+        );
+        DiagnosticLogger().log(
+          type: LogType.warning,
+          event: "INACTIVITY_TIMEOUT",
+          message: "15s elapsed without speech. Returning to Standby mode.",
         );
         disconnect();
       }
@@ -84,6 +89,13 @@ class GeminiService {
     logger.i("Initiating Gemini Live WebSocket connection...");
     onStatusUpdate?.call("Connecting to NIRA Live...");
 
+    DiagnosticLogger().log(
+      type: LogType.info,
+      event: "CONNECT_INITIATED",
+      message: "Initiating live session for model: ${ConfigService().model}",
+      details: {"model": ConfigService().model, "voice": ConfigService().voice},
+    );
+
     final uri = Uri.parse(GeminiConstants.geminiWebSocketUrl);
 
     try {
@@ -92,11 +104,22 @@ class GeminiService {
       logger.i(
         "WebSocket connection established successfully with Google Generative Language API!",
       );
+      DiagnosticLogger().log(
+        type: LogType.success,
+        event: "WEBSOCKET_CONNECTED",
+        message:
+            "WebSocket connection established with Google Generative Language API",
+      );
     } catch (e, stack) {
       logger.e(
         "Failed to connect to Gemini WebSocket",
         error: e,
         stackTrace: stack,
+      );
+      DiagnosticLogger().log(
+        type: LogType.error,
+        event: "CONNECT_FAILED",
+        message: "Failed to connect to Gemini WebSocket: $e",
       );
       onStatusUpdate?.call("Connection failed: $e");
       disconnect();
@@ -114,13 +137,51 @@ class GeminiService {
         _handleIncomingMessage(message);
       },
       onDone: () {
+        int? code = _channel?.closeCode;
+        String reason = _channel?.closeReason ?? "Closed by User";
+
+        code ??= 200;
+
+        String explanation;
+        switch (code) {
+          case 200:
+            explanation = "Closed by user (Code 200)";
+            break;
+          case 1008:
+            explanation = "Policy Violation / Quota Exceeded (Code 1008)";
+            break;
+          case 1006:
+            explanation =
+                "Abnormal Closure / Network Socket Dropped (Code 1006)";
+            break;
+          case 1000:
+            explanation = "Normal Session Closure (Code 1000)";
+            break;
+          case 1011:
+            explanation = "Google Server Internal Error (Code 1011)";
+            break;
+          default:
+            explanation = "Closed with code: $code ($reason)";
+        }
         logger.w(
-          "Gemini WebSocket stream finished (onDone). CloseCode: ${_channel?.closeCode}, Reason: ${_channel?.closeReason}",
+          "🛑 Gemini WebSocket stream finished (onDone). $explanation | Raw CloseCode: $code, Reason: $reason",
         );
+        DiagnosticLogger().log(
+          type: (code == 1000 || code == 200) ? LogType.info : LogType.warning,
+          event: "WEBSOCKET_DISCONNECTED",
+          message: explanation,
+          details: {"closeCode": code, "closeReason": reason},
+        );
+        onStatusUpdate?.call("Disconnected: $explanation");
         disconnect();
       },
       onError: (error) {
-        logger.e("Gemini WebSocket Error", error: error);
+        logger.e("🚨 Gemini WebSocket Error: $error", error: error);
+        DiagnosticLogger().log(
+          type: LogType.error,
+          event: "SOCKET_ERROR",
+          message: "Gemini WebSocket Error: $error",
+        );
         onStatusUpdate?.call("Connection error: $error");
         disconnect();
       },
@@ -181,8 +242,32 @@ class GeminiService {
           : rawMessage.toString();
       final Map<String, dynamic> data = jsonDecode(text);
 
+      if (data.containsKey('error')) {
+        final err = data['error'];
+        final code = err is Map ? err['code'] : 'Unknown';
+        final message = err is Map
+            ? (err['message'] ?? err.toString())
+            : err.toString();
+        final status = err is Map ? (err['status'] ?? '') : '';
+        logger.e("🚨 GOOGLE API ERROR: [$code $status] - $message");
+        DiagnosticLogger().log(
+          type: LogType.error,
+          event: "API_ERROR",
+          message: "[$code $status] - $message",
+          details: {"code": code, "status": status},
+        );
+        onStatusUpdate?.call("API Error ($status): $message");
+        disconnect();
+        return;
+      }
+
       if (data.containsKey('setupComplete')) {
         logger.i("Gemini session ready: setupComplete received!");
+        DiagnosticLogger().log(
+          type: LogType.success,
+          event: "SESSION_READY",
+          message: "Gemini session ready (setupComplete acknowledged)",
+        );
         onStatusUpdate?.call("Listening to you... (Speak naturally)");
         return;
       }
