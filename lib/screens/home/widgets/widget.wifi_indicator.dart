@@ -12,6 +12,7 @@ class WifiStatusWidget extends StatefulWidget {
 class _WifiStatusWidgetState extends State<WifiStatusWidget> {
   bool _isConnected = false;
   bool _isConnecting = false;
+  bool _isEthernet = false;
   String _ssid = "Disconnected";
   int _signalStrength = 0;
   Timer? _timer;
@@ -39,6 +40,47 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
     if (_isCheckingStatus) return;
     _isCheckingStatus = true;
     try {
+      bool ethernetConnected = false;
+      String? ethernetName;
+      try {
+        final ifResult = await Process.run('netsh', ['interface', 'show', 'interface']);
+        if (ifResult.exitCode == 0) {
+          final lines = ifResult.stdout.toString().split('\n');
+          for (final line in lines) {
+            final parts = line.trim().split(RegExp(r'\s{2,}'));
+            if (parts.length >= 4) {
+              final state = parts[1].trim().toLowerCase();
+              final name = parts[3].trim();
+              final nameLower = name.toLowerCase();
+              if (state == 'connected' &&
+                  (nameLower.contains('ethernet') || nameLower.contains('lan') || nameLower.contains('local area connection')) &&
+                  !nameLower.startsWith('v') &&
+                  !nameLower.contains('virtual') &&
+                  !nameLower.contains('pseudo') &&
+                  !nameLower.contains('loopback')) {
+                ethernetConnected = true;
+                ethernetName = name;
+                break;
+              }
+            }
+          }
+        }
+      } catch (_) {}
+
+      if (ethernetConnected) {
+        if (mounted) {
+          setState(() {
+            _isConnected = true;
+            _isConnecting = false;
+            _isEthernet = true;
+            _connectingStartTime = null;
+            _ssid = ethernetName ?? "Ethernet";
+            _signalStrength = 100;
+          });
+        }
+        return;
+      }
+
       final result = await Process.run('netsh', ['wlan', 'show', 'interfaces']);
       final output = result.stdout.toString();
       final stateMatch = RegExp(r'State\s*:\s*([a-zA-Z]+)').firstMatch(output);
@@ -52,6 +94,7 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
           setState(() {
             _isConnected = true;
             _isConnecting = false;
+            _isEthernet = false;
             _connectingStartTime = null;
             _ssid = ssidMatch?.group(1)?.trim() ?? "Connected";
             _signalStrength = int.tryParse(signalMatch?.group(1) ?? '0') ?? 0;
@@ -64,6 +107,7 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
           setState(() {
             _isConnected = false;
             _isConnecting = true;
+            _isEthernet = false;
             _ssid = "Connecting...";
             _signalStrength = 0;
           });
@@ -77,6 +121,7 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
           setState(() {
             _isConnected = false;
             _isConnecting = false;
+            _isEthernet = false;
             _ssid = "Disconnected";
             _signalStrength = 0;
           });
@@ -90,6 +135,7 @@ class _WifiStatusWidgetState extends State<WifiStatusWidget> {
   }
 
   IconData _getWifiIcon() {
+    if (_isEthernet && _isConnected) return Icons.lan_rounded;
     if (!_isConnected) return Icons.wifi_off_rounded;
     if (_signalStrength > 75) return Icons.wifi_rounded;
     if (_signalStrength > 50) return Icons.network_wifi_3_bar_rounded;
@@ -241,6 +287,17 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
   String _selectedAuth = '';
   String _selectedEnc = '';
   String _tempPassword = '';
+  bool _showPassword = false;
+
+  void _openOnScreenKeyboard() {
+    try {
+      Process.run('cmd', ['/c', 'start', 'osk.exe']);
+    } catch (_) {
+      try {
+        Process.run('cmd', ['/c', 'start', 'tabtip.exe']);
+      } catch (_) {}
+    }
+  }
 
   String _escapeXml(String input) {
     return input
@@ -459,6 +516,7 @@ Add-Type -TypeDefinition \$source;
         _selectedEnc = enc;
         _tempPassword = '';
         _passwordError = null;
+        _openOnScreenKeyboard();
       }
     });
   }
@@ -713,8 +771,9 @@ Add-Type -TypeDefinition \$source;
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               TextField(
-                                obscureText: true,
+                                obscureText: !_showPassword,
                                 autofocus: true,
+                                onTap: _openOnScreenKeyboard,
                                 style: const TextStyle(fontSize: 13),
                                 decoration: InputDecoration(
                                   hintText: 'Enter network password',
@@ -723,6 +782,33 @@ Add-Type -TypeDefinition \$source;
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 14,
                                     vertical: 10,
+                                  ),
+                                  suffixIcon: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(
+                                          _showPassword
+                                              ? Icons.visibility_off_rounded
+                                              : Icons.visibility_rounded,
+                                          size: 18,
+                                          color: const Color(0xFF64748B),
+                                        ),
+                                        onPressed: () {
+                                          setState(() => _showPassword = !_showPassword);
+                                        },
+                                        tooltip: _showPassword ? 'Hide password' : 'Show password',
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.keyboard_rounded,
+                                          size: 20,
+                                          color: Color(0xFF0284C7),
+                                        ),
+                                        onPressed: _openOnScreenKeyboard,
+                                        tooltip: 'Open On-Screen Keyboard',
+                                      ),
+                                    ],
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
