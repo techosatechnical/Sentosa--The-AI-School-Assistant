@@ -22,6 +22,7 @@ class GeminiConstants {
   static const int audioBufferThreshold = 144000;
   static const Duration acousticGracePeriod = Duration(milliseconds: 350);
   static const Duration inactivityTimeout = Duration(seconds: 15);
+  static const Duration responseWatchdogTimeout = Duration(seconds: 15);
 
   static Map<String, dynamic> getSetupMessage({
     String? model,

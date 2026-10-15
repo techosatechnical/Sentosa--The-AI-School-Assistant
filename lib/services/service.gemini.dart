@@ -23,6 +23,7 @@ class GeminiService {
   Timer? _inactivityTimer;
   Timer? _gracePeriodTimer;
   Timer? _silenceTimer;
+  Timer? _responseWatchdogTimer;
   StreamSubscription? _amplitudeSubscription;
 
   ConversationState _conversationState = ConversationState.standby;
@@ -81,6 +82,47 @@ class GeminiService {
         disconnect();
       }
     });
+  }
+
+  void _resetResponseWatchdog() {
+    _responseWatchdogTimer?.cancel();
+    _responseWatchdogTimer = Timer(GeminiConstants.responseWatchdogTimeout, () {
+      if (_isModelResponding ||
+          _conversationState == ConversationState.thinking ||
+          _conversationState == ConversationState.speaking ||
+          _isMicrophoneLocked) {
+        logger.w(
+          "⚠️ RESPONSE WATCHDOG TIMEOUT: No activity from Google for ${GeminiConstants.responseWatchdogTimeout.inSeconds}s. Resuming listening...",
+        );
+        DiagnosticLogger().log(
+          type: LogType.warning,
+          event: "MODEL_TIMEOUT",
+          message:
+              "No response or audio stream from Gemini within ${GeminiConstants.responseWatchdogTimeout.inSeconds}s. Unlocked mic and resumed listening without dropping to Standby.",
+          details: {
+            "conversationState": _conversationState.toString(),
+            "isMicrophoneLocked": _isMicrophoneLocked,
+            "isModelResponding": _isModelResponding,
+            "isPlaying": _isPlaying,
+          },
+        );
+        _gracePeriodTimer?.cancel();
+        _silenceTimer?.cancel();
+        _silenceTimer = null;
+        _stopPlayback();
+        _isModelResponding = false;
+        _isMicrophoneLocked = false;
+        _setConversationState(ConversationState.active);
+        onSpeakingStateChanged?.call(false);
+        onStatusUpdate?.call("Listening... (Say your question again)");
+        _resetInactivityTimer();
+      }
+    });
+  }
+
+  void _cancelResponseWatchdog() {
+    _responseWatchdogTimer?.cancel();
+    _responseWatchdogTimer = null;
   }
 
   Future<void> connect() async {
@@ -196,6 +238,7 @@ class GeminiService {
       _isModelResponding = true;
       _isMicrophoneLocked = true;
       _gracePeriodTimer?.cancel();
+      _resetResponseWatchdog();
 
       final payload = {
         "clientContent": {
@@ -212,7 +255,8 @@ class GeminiService {
       };
       _channel!.sink.add(jsonEncode(payload));
       logger.i("Sent text message to Gemini: $text");
-      _setConversationState(ConversationState.active);
+      _setConversationState(ConversationState.thinking);
+      onStatusUpdate?.call("Thinking...");
     } else {
       logger.w("Cannot send text message, Gemini channel is not connected.");
     }
@@ -225,6 +269,7 @@ class GeminiService {
       logger.i(
         "Intentional user interrupt triggered via voice command. Stopping speech immediately.",
       );
+      _cancelResponseWatchdog();
       _gracePeriodTimer?.cancel();
       _stopPlayback();
       _isModelResponding = false;
@@ -277,6 +322,7 @@ class GeminiService {
 
         if (serverContent['interrupted'] == true) {
           logger.i("Gemini server signalled interrupted.");
+          _cancelResponseWatchdog();
         }
 
         String? outputTranscriptionText;
@@ -297,6 +343,8 @@ class GeminiService {
         }
 
         if (serverContent['modelTurn'] != null) {
+          _silenceTimer?.cancel();
+          _silenceTimer = null;
           _isModelResponding = true;
           _isMicrophoneLocked = true;
           _gracePeriodTimer?.cancel();
@@ -352,6 +400,7 @@ class GeminiService {
 
         if (serverContent['turnComplete'] == true) {
           logger.i("Gemini turnComplete received.");
+          _cancelResponseWatchdog();
           _isModelResponding = false;
           if (_activeStream != null) {
             _soloud.setDataIsEnded(_activeStream!);
@@ -360,6 +409,8 @@ class GeminiService {
             _scheduleMicrophoneUnlock();
           }
           onTurnComplete?.call();
+        } else {
+          _resetResponseWatchdog();
         }
       }
     } catch (e, stack) {
@@ -437,8 +488,9 @@ class GeminiService {
           .onAmplitudeChanged(const Duration(milliseconds: 100))
           .listen((amp) {
             if (_conversationState == ConversationState.speaking ||
-                _isMicrophoneLocked)
+                _isMicrophoneLocked) {
               return;
+            }
 
             final double currentAmp = amp.current;
             onAmplitudeUpdate?.call(currentAmp);
@@ -448,6 +500,7 @@ class GeminiService {
               if (_conversationState == ConversationState.thinking) {
                 _setConversationState(ConversationState.active);
                 onStatusUpdate?.call("Listening... (Speak naturally)");
+                _cancelResponseWatchdog();
               }
               _silenceTimer?.cancel();
               _silenceTimer = null;
@@ -459,6 +512,7 @@ class GeminiService {
                   if (_conversationState == ConversationState.active) {
                     _setConversationState(ConversationState.thinking);
                     onStatusUpdate?.call("Thinking...");
+                    _resetResponseWatchdog();
                   }
                 });
               }
@@ -506,11 +560,12 @@ class GeminiService {
     }
   }
 
-  Future<void> disconnect() async {
+  Future<void> disconnect({String? statusMessage}) async {
     logger.i("Disconnecting GeminiService session...");
     _inactivityTimer?.cancel();
     _gracePeriodTimer?.cancel();
     _silenceTimer?.cancel();
+    _cancelResponseWatchdog();
     await _amplitudeSubscription?.cancel();
     _amplitudeSubscription = null;
     await _stopPlayback();
@@ -527,7 +582,7 @@ class GeminiService {
     _isMicrophoneLocked = false;
     _setConversationState(ConversationState.standby);
     onSpeakingStateChanged?.call(false);
-    onStatusUpdate?.call("Say 'Nira' or tap mic");
+    onStatusUpdate?.call(statusMessage ?? "Say 'Nira' or tap mic");
     onDisconnected?.call();
     logger.i("GeminiService disconnected (Standby).");
   }
@@ -535,6 +590,7 @@ class GeminiService {
   void dispose() {
     _inactivityTimer?.cancel();
     _gracePeriodTimer?.cancel();
+    _cancelResponseWatchdog();
     disconnect();
     _soloud.deinit();
     _audioRecorder.dispose();
