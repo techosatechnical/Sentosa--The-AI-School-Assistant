@@ -791,7 +791,7 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          "Configure Gemini Live voice, engine model, and prompt instructions.",
+                          "Configure NIRA Live voice, engine model, and prompt instructions.",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,

@@ -33,7 +33,7 @@ class StatusBadge extends StatelessWidget {
             ? "PROCESSING..."
             : (isListening
                   ? "ACTIVE CONVERSATION (SPEAK NATURALLY)"
-                  : "STANDBY — SAY 'HEY NIRA' OR TAP MIC"),
+                  : "STANDBY — TAP MIC TO START"),
         style: TextStyle(
           color: activeColor,
           fontSize: 12.5,

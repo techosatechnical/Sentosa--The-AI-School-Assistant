@@ -82,7 +82,7 @@ class GeminiService {
     if (_channel != null) return;
 
     logger.i("Initiating Gemini Live WebSocket connection...");
-    onStatusUpdate?.call("Connecting to Gemini Live...");
+    onStatusUpdate?.call("Connecting to NIRA Live...");
 
     final uri = Uri.parse(GeminiConstants.geminiWebSocketUrl);
 

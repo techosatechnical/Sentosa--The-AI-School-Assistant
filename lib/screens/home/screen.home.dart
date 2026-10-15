@@ -30,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isSpeaking = false;
   bool _isThinking = false;
   double _currentAmplitude = -50.0;
-  String _statusText = "Say 'Hey Nira' or tap mic";
+  String _statusText = "Tap mic to start ";
   final List<Map<String, String>> _messages = [];
   String _currentModelTurn = "";
 
@@ -164,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen>
           _isListening = false;
           _isSpeaking = false;
           _isThinking = false;
-          _statusText = "Say 'Hey Nira' or tap mic";
+          _statusText = "Tap mic to start";
         });
       }
     };
@@ -317,8 +317,8 @@ class _HomeScreenState extends State<HomeScreen>
       _messages.clear();
       _currentModelTurn = "";
       _statusText = fromWakeWord
-          ? "Awakened! Connecting to Gemini Live..."
-          : "Connecting to Gemini Live...";
+          ? "Awakened! Connecting to NIRA Live..."
+          : "Connecting to NIRA Live...";
     });
     try {
       await _geminiService.connect();
@@ -338,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen>
         _isListening = false;
         _isSpeaking = false;
         _isThinking = false;
-        _statusText = "Say 'Hey Nira' or tap mic";
+        _statusText = "Tap mic to start";
       });
       await _geminiService.disconnect();
     } else {

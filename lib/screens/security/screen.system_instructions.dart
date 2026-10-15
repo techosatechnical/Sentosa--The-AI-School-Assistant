@@ -246,7 +246,7 @@ class _SystemInstructionScreenState extends State<SystemInstructionScreen> {
                       Text(
                         _isEditing
                             ? "Modify the active persona and prompt directives. Click 'Commit Changes' to apply."
-                            : "Locked Markdown preview of the active Gemini agent system instructions.",
+                            : "Locked Markdown preview of the active NIRA agent system instructions.",
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
