@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:nira/services/service.config.dart';
+import 'package:nira/services/services.dart';
 import 'package:nira/widgets/widget.toast.dart';
 
 class SystemInstructionScreen extends StatefulWidget {
@@ -103,6 +103,7 @@ class _SystemInstructionScreenState extends State<SystemInstructionScreen> {
                     setState(() {
                       _isEditing = true;
                     });
+                    KeyboardService.openOnScreenKeyboard();
                   },
                   icon: const Icon(Icons.edit_note_rounded, size: 18),
                   label: const Text(
@@ -123,6 +124,13 @@ class _SystemInstructionScreenState extends State<SystemInstructionScreen> {
                   ),
                 )
               else ...[
+                IconButton(
+                  onPressed: KeyboardService.openOnScreenKeyboard,
+                  icon: const Icon(Icons.keyboard_alt_outlined),
+                  tooltip: 'Open on-screen keyboard',
+                  color: const Color(0xFF64748B),
+                ),
+                const SizedBox(width: 4),
                 OutlinedButton(
                   onPressed: () {
                     setState(() {
@@ -288,6 +296,7 @@ class _SystemInstructionScreenState extends State<SystemInstructionScreen> {
                                 controller: _instructionController,
                                 maxLines: null,
                                 expands: true,
+                                onTap: KeyboardService.openOnScreenKeyboard,
                                 style: const TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 14,

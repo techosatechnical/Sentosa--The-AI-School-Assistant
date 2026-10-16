@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:nira/services/services.dart';
 
 class WifiStatusWidget extends StatefulWidget {
   const WifiStatusWidget({super.key});
@@ -290,13 +291,7 @@ class _WifiNetworkPanelState extends State<WifiNetworkPanel> {
   bool _showPassword = false;
 
   void _openOnScreenKeyboard() {
-    try {
-      Process.run('cmd', ['/c', 'start', 'osk.exe']);
-    } catch (_) {
-      try {
-        Process.run('cmd', ['/c', 'start', 'tabtip.exe']);
-      } catch (_) {}
-    }
+    KeyboardService.openOnScreenKeyboard();
   }
 
   String _escapeXml(String input) {

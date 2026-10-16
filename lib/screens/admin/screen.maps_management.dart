@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:nira/helpers/models/model.map_data.dart';
-import 'package:nira/services/service.storage.dart';
+import 'package:nira/services/services.dart';
 import 'package:nira/widgets/widget.toast.dart';
 import 'package:nira/helpers/data/data.default_maps.dart';
 
@@ -93,6 +93,7 @@ class _MapsManagementScreenState extends State<MapsManagementScreen> {
       _mapData!.rooms.add(newRoom);
       _selectedItem = newRoom;
     });
+    KeyboardService.openOnScreenKeyboard();
   }
 
   void _addCorridor() {
@@ -467,6 +468,12 @@ class _MapsManagementScreenState extends State<MapsManagementScreen> {
             _addPathNode,
           ),
           const SizedBox(height: 8),
+          _toolBtn(
+            'Open Keyboard',
+            Icons.keyboard_alt_outlined,
+            KeyboardService.openOnScreenKeyboard,
+          ),
+          const SizedBox(height: 8),
           const Text(
             "Long-press anywhere on the route line to drop a new bend node right there.",
             style: TextStyle(color: Colors.grey, fontSize: 11.5, height: 1.3),
@@ -484,14 +491,23 @@ class _MapsManagementScreenState extends State<MapsManagementScreen> {
                     color: Color(0xFF0B1C30),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: Colors.red,
-                    size: 20,
-                  ),
-                  tooltip: 'Delete',
-                  onPressed: _deleteSelectedItem,
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.keyboard_alt_outlined, size: 20),
+                      tooltip: 'Open keyboard',
+                      onPressed: KeyboardService.openOnScreenKeyboard,
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                      tooltip: 'Delete',
+                      onPressed: _deleteSelectedItem,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -686,31 +702,21 @@ class _MapsManagementScreenState extends State<MapsManagementScreen> {
   }
 
   Widget _textField(String label, String val, ValueChanged<String> onChange) {
-    return TextField(
-      controller: TextEditingController(text: val)
-        ..selection = TextSelection.collapsed(offset: val.length),
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        isDense: true,
-      ),
+    return _MapPropTextField(
+      key: ValueKey(label),
+      label: label,
+      initialValue: val,
       onChanged: onChange,
     );
   }
 
   Widget _numField(String label, double val, ValueChanged<double> onChange) {
-    return TextField(
-      controller: TextEditingController(text: val.toStringAsFixed(0))
-        ..selection = TextSelection.collapsed(
-          offset: val.toStringAsFixed(0).length,
-        ),
+    return _MapPropTextField(
+      key: ValueKey(label),
+      label: label,
+      initialValue: val.toStringAsFixed(0),
       keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        isDense: true,
-      ),
-      onSubmitted: (s) {
+      onChanged: (s) {
         final d = double.tryParse(s);
         if (d != null) onChange(d);
       },
@@ -755,6 +761,76 @@ class _MapsManagementScreenState extends State<MapsManagementScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _MapPropTextField extends StatefulWidget {
+  final String label;
+  final String initialValue;
+  final ValueChanged<String> onChanged;
+  final TextInputType? keyboardType;
+
+  const _MapPropTextField({
+    super.key,
+    required this.label,
+    required this.initialValue,
+    required this.onChanged,
+    this.keyboardType,
+  });
+
+  @override
+  State<_MapPropTextField> createState() => _MapPropTextFieldState();
+}
+
+class _MapPropTextFieldState extends State<_MapPropTextField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void didUpdateWidget(covariant _MapPropTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialValue != _controller.text &&
+        widget.initialValue != oldWidget.initialValue) {
+      _controller.text = widget.initialValue;
+      _controller.selection =
+          TextSelection.collapsed(offset: _controller.text.length);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      keyboardType: widget.keyboardType,
+      onTap: KeyboardService.openOnScreenKeyboard,
+      decoration: InputDecoration(
+        labelText: widget.label,
+        border: const OutlineInputBorder(),
+        isDense: true,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.keyboard_alt_outlined, size: 18),
+          tooltip: 'Open keyboard',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          onPressed: KeyboardService.openOnScreenKeyboard,
+        ),
+      ),
+      onChanged: widget.onChanged,
+      onSubmitted: widget.onChanged,
     );
   }
 }

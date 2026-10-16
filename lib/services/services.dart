@@ -4,4 +4,5 @@ export 'service.logger.dart';
 export 'service.storage.dart';
 export 'service.config.dart';
 export 'service.diagnostics.dart';
+export 'service.keyboard.dart';
 
