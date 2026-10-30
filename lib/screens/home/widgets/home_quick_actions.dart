@@ -49,20 +49,17 @@ class HomeQuickActions extends StatelessWidget {
     CustomPainter painter;
     switch (index) {
       case 0:
-        painter = TalkGraphicPainter(dashColor);
-        break;
-      case 1:
         painter = AdmissionGraphicPainter(dashColor);
         break;
-      case 2:
+      case 1:
         painter = PrincipalGraphicPainter(dashColor);
         break;
-      case 3:
+      case 2:
         painter = MapGraphicPainter(dashColor);
         break;
-      case 4:
+      case 3:
       default:
-        painter = CafeteriaGraphicPainter(dashColor);
+        painter = KgSectionGraphicPainter(dashColor);
         break;
     }
     return SizedBox(
@@ -105,8 +102,8 @@ class HomeQuickActions extends StatelessWidget {
         accentDashColor: const Color(0xFF93C5FD),
       ),
       ActionCardData(
-        title: "Cafeteria",
-        subtitle: "Check meal timings,\nmenu and location.",
+        title: "KG Section",
+        subtitle: "Find kindergarten rooms,\nplay area and directions.",
         bgColor: const Color(0xFFEDFAF3),
         hoverColor: const Color(0xFFDCF6E8),
         borderColor: const Color(0xFFD1F2E2),
@@ -166,10 +163,10 @@ class HomeQuickActions extends StatelessWidget {
                 builder: (_) => const MapScreen(mapId: 'library'),
               ),
             );
-          } else if (card.title == "Cafeteria") {
+          } else if (card.title == "KG Section") {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => const MapScreen(mapId: 'cafeteria'),
+                builder: (_) => const MapScreen(mapId: 'kg_section'),
               ),
             );
           } else {

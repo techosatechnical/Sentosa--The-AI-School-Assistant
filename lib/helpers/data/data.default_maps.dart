@@ -38,8 +38,8 @@ class DefaultMaps {
       y: 830,
       w: 210,
       h: 110,
-      title: 'COURTYARD TERRACE',
-      subtitle: 'Nira Garden Cafe',
+      title: 'KG SECTION',
+      subtitle: 'Kindergarten & Play School',
     ),
     MapRoom(
       id: "r4",
@@ -169,7 +169,7 @@ class DefaultMaps {
     );
   }
 
-  static MapData get cafeteriaMap {
+  static MapData get kgSectionMap {
     final rooms = List<MapRoom>.from(
       _baseRooms.map(
         (e) => MapRoom(
@@ -187,9 +187,9 @@ class DefaultMaps {
     );
 
     return MapData(
-      id: 'cafeteria',
-      title: "Nira Garden Cafe",
-      subtitle: "Courtyard Terrace Entrance",
+      id: 'kg_section',
+      title: "KG Section",
+      subtitle: "Kindergarten & Play School Wing",
       rooms: rooms,
       corridors: _baseCorridors,
       pathNodes: [

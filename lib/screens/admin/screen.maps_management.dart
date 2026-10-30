@@ -51,8 +51,8 @@ class _MapsManagementScreenState extends State<MapsManagementScreen> {
     if (_mapData == null) {
       if (id == 'library') {
         _mapData = DefaultMaps.libraryMap;
-      } else if (id == 'cafeteria') {
-        _mapData = DefaultMaps.cafeteriaMap;
+      } else if (id == 'kg_section') {
+        _mapData = DefaultMaps.kgSectionMap;
       } else {
         _mapData = DefaultMaps.principalMap;
       }

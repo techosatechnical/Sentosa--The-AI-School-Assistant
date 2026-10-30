@@ -62,7 +62,7 @@ class _MapScreenState extends State<MapScreen>
         }
       }
       if (id == 'library') return DefaultMaps.libraryMap;
-      if (id == 'cafeteria') return DefaultMaps.cafeteriaMap;
+      if (id == 'kg_section') return DefaultMaps.kgSectionMap;
       return DefaultMaps.principalMap;
     });
   }
@@ -82,12 +82,12 @@ class _MapScreenState extends State<MapScreen>
           dash: const Color(0xFF93C5FD),
           painterBuilder: (c) => MapGraphicPainter(c),
         );
-      case 'cafeteria':
+      case 'kg_section':
         return _DestinationVisual(
           bg: const Color(0xFFEDFAF3),
           accent: const Color(0xFF10B981),
           dash: const Color(0xFF86EFAC),
-          painterBuilder: (c) => CafeteriaGraphicPainter(c),
+          painterBuilder: (c) => KgSectionGraphicPainter(c),
         );
       case 'principal':
       default:

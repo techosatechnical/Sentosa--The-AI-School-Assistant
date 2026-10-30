@@ -176,14 +176,43 @@ class PrincipalGraphicPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class CafeteriaGraphicPainter extends CustomPainter {
+class KgSectionGraphicPainter extends CustomPainter {
   final Color dashColor;
-  CafeteriaGraphicPainter(this.dashColor);
+  KgSectionGraphicPainter(this.dashColor);
+
+  void _drawBlockLetter(
+    Canvas canvas,
+    String letter,
+    Offset center,
+    double fontSize,
+  ) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: letter,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.w900,
+          color: Colors.white,
+          height: 1.0,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(
+      canvas,
+      Offset(center.dx - tp.width / 2, center.dy - tp.height / 2),
+    );
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
     final cy = size.height / 2;
+    final scale = (math.min(size.width, size.height) / 60.0).clamp(0.55, 1.0);
+
+    canvas.save();
+    canvas.translate(cx, cy);
+    canvas.scale(scale);
 
     final dashPaint = Paint()
       ..color = dashColor
@@ -192,56 +221,38 @@ class CafeteriaGraphicPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     canvas.drawLine(
-      Offset(cx - 25, cy - 18),
-      Offset(cx - 20, cy - 24),
+      const Offset(-25, -18),
+      const Offset(-20, -24),
       dashPaint,
     );
     canvas.drawLine(
-      Offset(cx + 20, cy - 22),
-      Offset(cx + 26, cy - 16),
+      const Offset(20, -22),
+      const Offset(26, -16),
       dashPaint,
     );
 
-    canvas.drawCircle(
-      Offset(cx, cy),
-      25,
-      Paint()..color = const Color(0xFF10B981),
+    final leftBlock = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: const Offset(-10.5, 10), width: 19, height: 19),
+      const Radius.circular(4.5),
     );
+    canvas.drawRRect(leftBlock, Paint()..color = const Color(0xFF10B981));
+    _drawBlockLetter(canvas, 'B', const Offset(-10.5, 10), 11);
 
-    final whitePaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    final strokePaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round;
+    final rightBlock = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: const Offset(10.5, 10), width: 19, height: 19),
+      const Radius.circular(4.5),
+    );
+    canvas.drawRRect(rightBlock, Paint()..color = const Color(0xFF34D399));
+    _drawBlockLetter(canvas, 'C', const Offset(10.5, 10), 11);
 
-    final fx = cx - 7;
-    canvas.drawLine(Offset(fx, cy - 2), Offset(fx, cy + 14), strokePaint);
-    final forkBase = Path()
-      ..moveTo(fx - 4, cy - 6)
-      ..cubicTo(fx - 4, cy, fx + 4, cy, fx + 4, cy - 6)
-      ..close();
-    canvas.drawPath(forkBase, whitePaint);
-    canvas.drawLine(
-      Offset(fx - 3.5, cy - 6),
-      Offset(fx - 3.5, cy - 14),
-      strokePaint,
+    final topBlock = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: const Offset(0, -10), width: 20, height: 20),
+      const Radius.circular(4.5),
     );
-    canvas.drawLine(Offset(fx, cy - 6), Offset(fx, cy - 14), strokePaint);
-    canvas.drawLine(
-      Offset(fx + 3.5, cy - 6),
-      Offset(fx + 3.5, cy - 14),
-      strokePaint,
-    );
+    canvas.drawRRect(topBlock, Paint()..color = const Color(0xFF059669));
+    _drawBlockLetter(canvas, 'A', const Offset(0, -10), 11.5);
 
-    final sx = cx + 7;
-    canvas.drawLine(Offset(sx, cy - 2), Offset(sx, cy + 14), strokePaint);
-    canvas.drawOval(
-      Rect.fromCenter(center: Offset(sx, cy - 8), width: 8.5, height: 13),
-      whitePaint,
-    );
+    canvas.restore();
   }
 
   @override

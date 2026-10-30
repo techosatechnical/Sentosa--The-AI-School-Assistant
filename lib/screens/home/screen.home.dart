@@ -84,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen>
     },
     {
       'hi': 'Here to help! 🚀',
-      'text': 'Looking for buses, cafeteria menus,\nor your next class?',
+      'text': 'Looking for buses, the KG section,\nor your next class?',
     },
   ];
   int _greetingIndex = 0;

@@ -153,8 +153,8 @@ class AccessibilityMenuScreen extends StatelessWidget {
       ),
       (
         data: ActionCardData(
-          title: "Cafeteria",
-          subtitle: "Check meal timings,\nmenu and location.",
+          title: "KG Section",
+          subtitle: "Find kindergarten rooms,\nplay area and directions.",
           bgColor: const Color(0xFFEDFAF3),
           hoverColor: const Color(0xFFDCF6E8),
           borderColor: const Color(0xFFD1F2E2),
@@ -162,13 +162,13 @@ class AccessibilityMenuScreen extends StatelessWidget {
           arrowColor: const Color(0xFF10B981),
           accentDashColor: const Color(0xFF86EFAC),
         ),
-        painter: CafeteriaGraphicPainter(const Color(0xFF86EFAC)),
+        painter: KgSectionGraphicPainter(const Color(0xFF86EFAC)),
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) =>
-                  const MapsManagementScreen(mapId: 'cafeteria'),
+                  const MapsManagementScreen(mapId: 'kg_section'),
             ),
           );
         },
