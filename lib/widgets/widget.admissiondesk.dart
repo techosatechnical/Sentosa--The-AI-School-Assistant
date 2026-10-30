@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nira/services/services.dart';
@@ -17,6 +18,9 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
   bool _isWebviewInitialized = false;
   StreamSubscription? _webMessageSubscription;
   StreamSubscription? _loadingStateSubscription;
+  final FocusNode _webviewFocusNode = FocusNode(
+    debugLabel: 'AdmissionWebviewKeyBridge',
+  );
 
   static const String _keyboardInjectionScript = '''
 (function() {
@@ -58,9 +62,46 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
     return false;
   }
 
-  // --- Keyboard triggers for textual inputs only ---
-  document.addEventListener('focusin', function(e) {
+  // --- Suppress the Windows Touch Keyboard: mark fields inputmode="none" ---
+  function markNoTouchKeyboard(el) {
+    try {
+      if (el && el.getAttribute && el.getAttribute('inputmode') !== 'none') {
+        el.setAttribute('inputmode', 'none');
+      }
+    } catch (_) {}
+  }
+
+  var FIELD_SELECTOR = 'input, textarea, [contenteditable]';
+
+  function suppressTouchKeyboard(root) {
+    try {
+      if (root.matches && root.matches(FIELD_SELECTOR)) markNoTouchKeyboard(root);
+      if (root.querySelectorAll) {
+        var nodes = root.querySelectorAll(FIELD_SELECTOR);
+        for (var i = 0; i < nodes.length; i++) markNoTouchKeyboard(nodes[i]);
+      }
+    } catch (_) {}
+  }
+
+  suppressTouchKeyboard(document);
+  document.addEventListener('DOMContentLoaded', function() {
+    suppressTouchKeyboard(document);
+  });
+  try {
+    new MutationObserver(function(mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        var added = mutations[i].addedNodes;
+        for (var j = 0; j < added.length; j++) {
+          if (added[j].nodeType === 1) suppressTouchKeyboard(added[j]);
+        }
+      }
+    }).observe(document, { childList: true, subtree: true });
+  } catch (_) {}
+
+  // --- Open osk.exe only on an actual tap (never on page-load auto-focus) ---
+  document.addEventListener('pointerdown', function(e) {
     if (isTextInput(e.target)) {
+      markNoTouchKeyboard(e.target);
       notifyKeyboard();
     }
   }, true);
@@ -71,11 +112,154 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
     }
   }, true);
 
-  document.addEventListener('pointerdown', function(e) {
-    if (isTextInput(e.target)) {
-      notifyKeyboard();
+  // --- Key bridge: keystrokes forwarded from Flutter (osk.exe / physical keyboard) ---
+  function deepActiveElement() {
+    var el = document.activeElement;
+    while (el && el.tagName === 'IFRAME') {
+      try {
+        var d = el.contentDocument;
+        if (!d || !d.activeElement) break;
+        el = d.activeElement;
+      } catch (_) { break; }
     }
-  }, true);
+    return el;
+  }
+
+  function readValue(el) {
+    return el.isContentEditable ? el.innerText : (el.value || '');
+  }
+
+  function supportsSelection(el) {
+    try { return typeof el.selectionStart === 'number' && el.selectionStart !== null; }
+    catch (_) { return false; }
+  }
+
+  function setSel(el, pos) {
+    try { el.setSelectionRange(pos, pos); } catch (_) {}
+  }
+
+  function setNativeValue(el, value) {
+    var win = (el.ownerDocument && el.ownerDocument.defaultView) || window;
+    var proto = el.tagName.toLowerCase() === 'textarea'
+      ? win.HTMLTextAreaElement.prototype
+      : win.HTMLInputElement.prototype;
+    var desc = Object.getOwnPropertyDescriptor(proto, 'value');
+    if (desc && desc.set) { desc.set.call(el, value); } else { el.value = value; }
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function insertText(el, text) {
+    var doc = el.ownerDocument || document;
+    var before = readValue(el);
+    try { doc.execCommand('insertText', false, text); } catch (_) {}
+    if (el.isContentEditable || readValue(el) !== before) return;
+
+    // Fallback when execCommand did not apply (e.g. document not focused).
+    if ((el.type || '').toLowerCase() === 'number' && !/^[0-9.eE+-]+\$/.test(text)) return;
+    var v = el.value || '';
+    if (supportsSelection(el)) {
+      var s = el.selectionStart, e = el.selectionEnd;
+      setNativeValue(el, v.slice(0, s) + text + v.slice(e));
+      setSel(el, s + text.length);
+    } else {
+      setNativeValue(el, v + text);
+    }
+  }
+
+  function deleteText(el, forward) {
+    var doc = el.ownerDocument || document;
+    var before = readValue(el);
+    try { doc.execCommand(forward ? 'forwardDelete' : 'delete', false, null); } catch (_) {}
+    if (el.isContentEditable || readValue(el) !== before) return;
+
+    var v = el.value || '';
+    if (supportsSelection(el)) {
+      var s = el.selectionStart, e = el.selectionEnd;
+      if (s !== e) {
+        setNativeValue(el, v.slice(0, s) + v.slice(e));
+        setSel(el, s);
+      } else if (!forward && s > 0) {
+        setNativeValue(el, v.slice(0, s - 1) + v.slice(s));
+        setSel(el, s - 1);
+      } else if (forward && s < v.length) {
+        setNativeValue(el, v.slice(0, s) + v.slice(s + 1));
+        setSel(el, s);
+      }
+    } else if (!forward && v.length) {
+      setNativeValue(el, v.slice(0, -1));
+    }
+  }
+
+  function moveCaret(el, action) {
+    if (!supportsSelection(el)) return;
+    var v = el.value || '';
+    var s = el.selectionStart, e = el.selectionEnd;
+    if (action === 'left') setSel(el, s !== e ? s : Math.max(0, s - 1));
+    else if (action === 'right') setSel(el, s !== e ? e : Math.min(v.length, e + 1));
+    else if (action === 'home') setSel(el, 0);
+    else if (action === 'end') setSel(el, v.length);
+  }
+
+  function isVisible(n) {
+    return !!(n.offsetWidth || n.offsetHeight || n.getClientRects().length);
+  }
+
+  function moveFocus(el, backwards, textOnly) {
+    var doc = (el && el.ownerDocument) || document;
+    var all = doc.querySelectorAll(
+      'input, textarea, select, button, a[href], [contenteditable], [tabindex]'
+    );
+    var list = Array.prototype.filter.call(all, function(n) {
+      if (n.disabled || n.tabIndex < 0 || (n.type || '').toLowerCase() === 'hidden') return false;
+      if (!isVisible(n)) return false;
+      return textOnly ? isTextInput(n) : true;
+    });
+    if (!list.length) return;
+    var idx = list.indexOf(el);
+    var next = idx === -1
+      ? list[0]
+      : list[idx + (backwards ? -1 : 1)];
+    if (next) {
+      next.focus();
+      try { next.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}
+    }
+  }
+
+  window.__niraKey = function(action, data) {
+    var el = deepActiveElement();
+    if (action === 'tab') { moveFocus(el, !!data, false); return true; }
+    if (!isTextInput(el)) return false;
+
+    switch (action) {
+      case 'text':
+        insertText(el, String(data == null ? '' : data));
+        break;
+      case 'backspace':
+        deleteText(el, false);
+        break;
+      case 'delete':
+        deleteText(el, true);
+        break;
+      case 'enter':
+        if ((el.tagName || '').toLowerCase() === 'textarea' || el.isContentEditable) {
+          insertText(el, '\\n');
+        } else {
+          moveFocus(el, false, true);
+        }
+        break;
+      case 'left':
+      case 'right':
+      case 'home':
+      case 'end':
+        moveCaret(el, action);
+        break;
+      case 'selectAll':
+        try { el.select ? el.select() : (el.ownerDocument || document).execCommand('selectAll'); } catch (_) {}
+        break;
+    }
+    return true;
+  };
 
   // --- Custom in-DOM dropdown picker for HTML <select> elements ---
   function openCustomSelect(select) {
@@ -213,9 +397,11 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
       } catch (_) {}
 
       _webMessageSubscription = _controller.webMessage.listen((message) {
-        if (message is Map && message['action'] == 'openKeyboard') {
-          KeyboardService.openOnScreenKeyboard();
-        } else if (message is String && message.contains('openKeyboard')) {
+        final wantsKeyboard =
+            (message is Map && message['action'] == 'openKeyboard') ||
+            (message is String && message.contains('openKeyboard'));
+        if (wantsKeyboard) {
+          _focusKeyBridge();
           KeyboardService.openOnScreenKeyboard();
         }
       });
@@ -266,8 +452,103 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
   void dispose() {
     _webMessageSubscription?.cancel();
     _loadingStateSubscription?.cancel();
+    _webviewFocusNode.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  // --- Key bridge -----------------------------------------------------------
+  // webview_windows renders WebView2 off-screen and only forwards pointer
+  // events, so keystrokes (from osk.exe or a physical keyboard) land on the
+  // Flutter window. We capture them here and replay them into the focused
+  // field inside the page via window.__niraKey (see _keyboardInjectionScript).
+
+  void _focusKeyBridge() {
+    if (mounted && !_webviewFocusNode.hasFocus) {
+      _webviewFocusNode.requestFocus();
+    }
+  }
+
+  Future<void> _sendKeyToWeb(String action, [Object? data]) async {
+    if (!_isWebviewInitialized) return;
+    try {
+      await _controller.executeScript(
+        'window.__niraKey && window.__niraKey(${jsonEncode(action)}, ${jsonEncode(data)});',
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _pasteIntoWeb() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text;
+    if (text != null && text.isNotEmpty) {
+      await _sendKeyToWeb('text', text);
+    }
+  }
+
+  KeyEventResult _handleWebviewKey(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+
+    final key = event.logicalKey;
+    final keyboard = HardwareKeyboard.instance;
+
+    // Ctrl shortcuts (AltGr reports Ctrl+Alt, so let that fall through).
+    if ((keyboard.isControlPressed || keyboard.isMetaPressed) &&
+        !keyboard.isAltPressed) {
+      if (key == LogicalKeyboardKey.keyV) {
+        _pasteIntoWeb();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.keyA) {
+        _sendKeyToWeb('selectAll');
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
+    if (key == LogicalKeyboardKey.backspace) {
+      _sendKeyToWeb('backspace');
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.delete) {
+      _sendKeyToWeb('delete');
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      _sendKeyToWeb('enter');
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.tab) {
+      _sendKeyToWeb('tab', keyboard.isShiftPressed);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowLeft) {
+      _sendKeyToWeb('left');
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowRight) {
+      _sendKeyToWeb('right');
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.home) {
+      _sendKeyToWeb('home');
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.end) {
+      _sendKeyToWeb('end');
+      return KeyEventResult.handled;
+    }
+
+    final ch = event.character;
+    if (ch != null && ch.isNotEmpty) {
+      final code = ch.codeUnitAt(0);
+      if (code >= 0x20 && code != 0x7F) {
+        _sendKeyToWeb('text', ch);
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
   }
 
   Future<WebviewPermissionDecision> _onPermissionRequested(
@@ -413,9 +694,18 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
                       child: _isWebviewInitialized
                           ? Stack(
                               children: [
-                                Webview(
-                                  _controller,
-                                  permissionRequested: _onPermissionRequested,
+                                Focus(
+                                  focusNode: _webviewFocusNode,
+                                  autofocus: true,
+                                  onKeyEvent: _handleWebviewKey,
+                                  child: Listener(
+                                    onPointerDown: (_) => _focusKeyBridge(),
+                                    child: Webview(
+                                      _controller,
+                                      permissionRequested:
+                                          _onPermissionRequested,
+                                    ),
+                                  ),
                                 ),
                                 StreamBuilder<LoadingState>(
                                   stream: _controller.loadingState,
@@ -483,8 +773,10 @@ class _AdmissionAssistantDialogState extends State<AdmissionAssistantDialog> {
                                     borderRadius: BorderRadius.circular(24),
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(24),
-                                      onTap:
-                                          KeyboardService.openOnScreenKeyboard,
+                                      onTap: () {
+                                        _focusKeyBridge();
+                                        KeyboardService.openOnScreenKeyboard();
+                                      },
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 14,
