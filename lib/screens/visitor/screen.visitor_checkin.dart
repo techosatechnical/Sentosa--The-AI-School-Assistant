@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:nira/helpers/models/model.visitor.dart';
 import 'package:nira/services/service.visitor.dart';
 import 'package:nira/widgets/widget.admissiondesk.dart';
+import 'package:nira/widgets/widget.qr_code.dart';
 import 'package:nira/widgets/widget.touch_keyboard.dart';
 
 class VisitorCheckInScreen extends StatefulWidget {
@@ -40,12 +41,13 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
 
   VisitorRecord? _issuedRecord;
   bool _isSubmitting = false;
+  bool _qrWhatsAppMode = true;
 
   // Hesitation & Inactivity Timers
   Timer? _hesitationTimer;
   Timer? _inactivityTimer;
   Timer? _tokenCountdownTimer;
-  int _tokenAutoCloseSeconds = 20;
+  int _tokenAutoCloseSeconds = 25;
   bool _showHesitationBanner = false;
   bool _isWarningDialogOpen = false;
 
@@ -287,7 +289,7 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
         break;
       case 4:
         prompt =
-            "Thank you! Your visitor token ${_issuedRecord?.shortToken ?? ''} has been generated. Please show your token at the reception desk.";
+            "Thank you! Your visitor token ${_issuedRecord?.shortToken ?? ''} has been generated. You can scan the QR code to save it on your phone, or show your token at the reception desk.";
         break;
       default:
         prompt = "Welcome to Nirmala Bhavan.";
@@ -390,7 +392,8 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
         _issuedRecord = record;
         _isSubmitting = false;
         _currentStep = 4;
-        _tokenAutoCloseSeconds = 22;
+        _qrWhatsAppMode = _phone.length == 10;
+        _tokenAutoCloseSeconds = 25;
       });
       _hesitationTimer?.cancel();
       _inactivityTimer?.cancel();
@@ -2052,6 +2055,8 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
                 ],
               ),
               const SizedBox(height: 18),
+              _buildSmartQrPassSection(rec),
+              const SizedBox(height: 18),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -2157,6 +2162,287 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmartQrPassSection(VisitorRecord rec) {
+    final hasValidPhone =
+        rec.phoneNumber.length == 10 && rec.phoneNumber != 'Not Provided';
+
+    final studentLine = rec.studentSummary != 'N/A'
+        ? '\nStudent: ${rec.studentSummary}'
+        : '';
+
+    final offlinePassText =
+        'NIRMALA BHAVAN VISITOR PASS\n'
+        'Token: ${rec.shortToken} (${rec.tokenId})\n'
+        'Time: ${rec.formattedDate} ${rec.formattedTime}\n'
+        'Name: ${rec.visitorName}\n'
+        'Meet: ${rec.personToMeet}\n'
+        'Purpose: ${rec.purposeLabel}'
+        '$studentLine';
+
+    final waMessage =
+        '*Nirmala Bhavan Visitor Pass*\n'
+        'Token: *${rec.shortToken}* (${rec.tokenId})\n'
+        'Time: ${rec.formattedDate} ${rec.formattedTime}\n'
+        'Name: ${rec.visitorName}\n'
+        'Meet: ${rec.personToMeet}\n'
+        'Purpose: ${rec.purposeLabel}'
+        '$studentLine';
+
+    final waPhoneSegment = hasValidPhone ? '91${rec.phoneNumber}' : '';
+    final whatsAppUrl =
+        'https://wa.me/$waPhoneSegment?text=${Uri.encodeComponent(waMessage)}';
+
+    final qrData = _qrWhatsAppMode ? whatsAppUrl : offlinePassText;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: _qrWhatsAppMode
+              ? [const Color(0xFFF0FDF4), const Color(0xFFECFDF5)]
+              : [const Color(0xFFF8FAFC), const Color(0xFFF0F9FF)],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: _qrWhatsAppMode
+              ? const Color(0xFF86EFAC)
+              : const Color(0xFFBAE6FD),
+          width: 1.8,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: _qrWhatsAppMode
+                    ? const Color(0xFF22C55E).withValues(alpha: 0.45)
+                    : const Color(0xFF0284C7).withValues(alpha: 0.35),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: KioskQrCodeWidget(
+              data: qrData,
+              size: 156,
+              foregroundColor: _qrWhatsAppMode
+                  ? const Color(0xFF064E3B)
+                  : const Color(0xFF0F2942),
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1-Tap Mode Switcher Pill
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildQrModeButton(
+                        isSelected: _qrWhatsAppMode,
+                        icon: Icons.chat_bubble_outline_rounded,
+                        label: _lang == 'ml'
+                            ? 'വാട്ട്‌സ്ആപ്പ് പാസ്'
+                            : 'WhatsApp Pass',
+                        activeColor: const Color(0xFF16A34A),
+                        onTap: () {
+                          VisitorService().playChime(ChimeType.tap);
+                          setState(() {
+                            _qrWhatsAppMode = true;
+                            _tokenAutoCloseSeconds = 25;
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 4),
+                      _buildQrModeButton(
+                        isSelected: !_qrWhatsAppMode,
+                        icon: Icons.qr_code_2_rounded,
+                        label: _lang == 'ml'
+                            ? 'ഓഫ്‌ലൈൻ QR (No Internet)'
+                            : 'Offline QR Pass',
+                        activeColor: const Color(0xFF0284C7),
+                        onTap: () {
+                          VisitorService().playChime(ChimeType.tap);
+                          setState(() {
+                            _qrWhatsAppMode = false;
+                            _tokenAutoCloseSeconds = 25;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      _qrWhatsAppMode
+                          ? Icons.phone_android_rounded
+                          : Icons.offline_bolt_rounded,
+                      size: 22,
+                      color: _qrWhatsAppMode
+                          ? const Color(0xFF15803D)
+                          : const Color(0xFF0369A1),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _qrWhatsAppMode
+                            ? (_lang == 'ml'
+                                  ? 'ഫോൺ ക്യാമറ ഉപയോഗിച്ച് സ്കാൻ ചെയ്ത് വാട്ട്‌സ്ആപ്പിൽ ടോക്കൺ സേവ് ചെയ്യാം'
+                                  : 'Scan to Save Token Pass in Your WhatsApp')
+                            : (_lang == 'ml'
+                                  ? 'ഇന്റർനെറ്റ് ഇല്ലാതെ ഫോണിൽ ടോക്കൺ വിവരങ്ങൾ കാണാൻ സ്കാൻ ചെയ്യുക'
+                                  : 'Offline Digital Pass (No Internet Required)'),
+                        style: const TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F2942),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _qrWhatsAppMode
+                      ? (hasValidPhone
+                            ? 'Opens WhatsApp (+91 ${rec.phoneNumber}) with your complete pass pre-filled — tap Send to keep it on your phone.'
+                            : 'Scan with your phone camera to open WhatsApp with your visitor token pass ready to save.')
+                      : 'Point your phone camera or Google Lens at this QR code to view your complete text pass immediately without mobile data.',
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF475569),
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.timer_outlined,
+                            size: 15,
+                            color: Color(0xFF0284C7),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Auto-closing in $_tokenAutoCloseSeconds s',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F2942),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      onPressed: () {
+                        VisitorService().playChime(ChimeType.tap);
+                        setState(() => _tokenAutoCloseSeconds = 25);
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0284C7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.more_time_rounded, size: 16),
+                      label: const Text(
+                        '+25s More Time',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQrModeButton({
+    required bool isSelected,
+    required IconData icon,
+    required String label,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? Colors.white : const Color(0xFF475569),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: isSelected ? Colors.white : const Color(0xFF475569),
+              ),
+            ),
+          ],
         ),
       ),
     );
