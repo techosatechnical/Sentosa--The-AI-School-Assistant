@@ -157,7 +157,7 @@ class VisitorReportService {
 
   ReportDispatchEntry? getStatusForDate(String dateKey) => _ledger[dateKey];
 
-  bool _isPastOrAtScheduledTime(DateTime now) {
+  DateTime _getTodayScheduledDateTime(DateTime now) {
     final raw = ConfigService().dailyReportTime;
     final parts = raw.split(':');
     int targetHour = 16;
@@ -166,9 +166,7 @@ class VisitorReportService {
       targetHour = int.tryParse(parts[0]) ?? 16;
       targetMinute = int.tryParse(parts[1]) ?? 0;
     }
-    if (now.hour > targetHour) return true;
-    if (now.hour == targetHour && now.minute >= targetMinute) return true;
-    return false;
+    return DateTime(now.year, now.month, now.day, targetHour, targetMinute);
   }
 
   Future<void> _runScheduledCheck({bool includeCatchUp = false}) async {
@@ -178,13 +176,20 @@ class VisitorReportService {
 
     final now = DateTime.now();
     final todayKey = VisitorService.formatDateKey(now);
+    final scheduledTarget = _getTodayScheduledDateTime(now);
 
-    // 1. Check today's scheduled report
-    if (_isPastOrAtScheduledTime(now)) {
+    // 1. Check today's scheduled report (send strictly once at/after the scheduled time;
+    //    do NOT re-send after every late visitor check-in).
+    if (!now.isBefore(scheduledTarget)) {
       final todayRecords = await VisitorService().getVisitorsForDate(todayKey);
       if (todayRecords.isNotEmpty) {
         final status = _ledger[todayKey];
-        if (status == null || !status.sent || status.needsUpdate) {
+        final alreadySentForSchedule =
+            status != null &&
+            status.sent &&
+            status.sentAt != null &&
+            !status.sentAt!.isBefore(scheduledTarget);
+        if (!alreadySentForSchedule) {
           await sendReportForDate(todayKey, isAutomated: true);
         }
       }
@@ -196,7 +201,7 @@ class VisitorReportService {
       for (final dateKey in dates) {
         if (dateKey == todayKey) continue;
         final status = _ledger[dateKey];
-        if (status != null && status.sent && !status.needsUpdate) continue;
+        if (status != null && status.sent) continue;
 
         final records = await VisitorService().getVisitorsForDate(dateKey);
         if (records.isNotEmpty) {

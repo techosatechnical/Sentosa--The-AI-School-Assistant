@@ -12,7 +12,11 @@ class ConfigService {
   static const String _defaultModel = 'models/gemini-3.1-flash-live-preview';
   static const String _defaultSmtpHost = 'smtp.gmail.com';
   static const int _defaultSmtpPort = 587;
-  static const String _defaultSmtpSender = 'nirmalabhavanschool@gmail.com';
+  static const String _defaultSmtpSender = 'sentosa.aitechosa@gmail.com';
+  static const String _defaultSmtpPassword = String.fromEnvironment(
+    'SMTP_PASSWORD',
+    defaultValue: 'rtqi chqh heav ecvc',
+  );
   static const String _defaultReportTime = '16:00';
   static const String _fileName = 'config.json';
 
@@ -42,7 +46,7 @@ class ConfigService {
   String _smtpHost = _defaultSmtpHost;
   int _smtpPort = _defaultSmtpPort;
   String _smtpSenderEmail = _defaultSmtpSender;
-  String _smtpPassword = const String.fromEnvironment('SMTP_PASSWORD');
+  String _smtpPassword = _defaultSmtpPassword;
   String _dailyReportTime = _defaultReportTime;
   bool _autoDailyReportEnabled = true;
   bool _visitorAudioPromptsEnabled = true;
@@ -111,11 +115,18 @@ class ConfigService {
         _smtpPort =
             int.tryParse(data['smtpPort']?.toString() ?? '') ??
             _defaultSmtpPort;
-        _smtpSenderEmail =
-            data['smtpSenderEmail']?.toString() ?? _defaultSmtpSender;
-        final savedPwd = data['smtpPassword']?.toString() ?? '';
+        final savedSender = data['smtpSenderEmail']?.toString().trim() ?? '';
+        if (savedSender.isNotEmpty &&
+            savedSender != 'nirmalabhavanschool@gmail.com') {
+          _smtpSenderEmail = savedSender;
+        } else {
+          _smtpSenderEmail = _defaultSmtpSender;
+        }
+        final savedPwd = data['smtpPassword']?.toString().trim() ?? '';
         if (savedPwd.isNotEmpty) {
           _smtpPassword = savedPwd;
+        } else {
+          _smtpPassword = _defaultSmtpPassword;
         }
         _dailyReportTime =
             data['dailyReportTime']?.toString() ?? _defaultReportTime;
