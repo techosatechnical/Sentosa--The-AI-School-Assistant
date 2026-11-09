@@ -665,3 +665,77 @@ class QuestionsGraphicPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+class VisitorTokenGraphicPainter extends CustomPainter {
+  final Color dashColor;
+  VisitorTokenGraphicPainter(this.dashColor);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+
+    final dashPaint = Paint()
+      ..color = dashColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.2
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawLine(
+      Offset(cx - 25, cy - 18),
+      Offset(cx - 19, cy - 24),
+      dashPaint,
+    );
+    canvas.drawLine(
+      Offset(cx + 20, cy - 22),
+      Offset(cx + 26, cy - 17),
+      dashPaint,
+    );
+
+    // Lanyard clip at top
+    final clipRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx, cy - 20), width: 14, height: 8),
+      const Radius.circular(3),
+    );
+    canvas.drawRRect(clipRect, Paint()..color = const Color(0xFF0369A1));
+
+    // Visitor Badge Card
+    final badgeRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx, cy + 3), width: 44, height: 40),
+      const Radius.circular(9),
+    );
+    canvas.drawRRect(badgeRect, Paint()..color = const Color(0xFF0284C7));
+
+    // Header band inside badge
+    final topBand = RRect.fromRectAndCorners(
+      Rect.fromCenter(center: Offset(cx, cy - 11), width: 44, height: 12),
+      topLeft: const Radius.circular(9),
+      topRight: const Radius.circular(9),
+    );
+    canvas.drawRRect(topBand, Paint()..color = const Color(0xFF38BDF8));
+
+    // Avatar circle on left
+    canvas.drawCircle(
+      Offset(cx - 10, cy + 7),
+      6.5,
+      Paint()..color = Colors.white,
+    );
+
+    // Lines on right
+    final linePaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.8
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(cx + 1, cy + 4), Offset(cx + 15, cy + 4), linePaint);
+    canvas.drawLine(
+      Offset(cx + 1, cy + 10),
+      Offset(cx + 11, cy + 10),
+      linePaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+

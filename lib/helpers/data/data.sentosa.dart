@@ -466,6 +466,7 @@ Parents are expected to:
 - Arrange appointments where required.
 - Avoid meeting teachers during classroom teaching time.
 - Participate in parent-teacher activities.
+- Use the "Visitor Token & Check-In" card on this NIRA kiosk screen at reception to generate a unique visitor token when arriving to meet the Principal, teachers, or school office.
 
 ==================================================
 19. SCHOOL TRANSPORT

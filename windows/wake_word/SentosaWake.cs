@@ -69,7 +69,11 @@ namespace SentosaWake {
                         "Admission",
                         "Admissions",
                         "Admission procedure",
-                        "Start admission"
+                        "Start admission",
+                        "Visitor token",
+                        "Visitor pass",
+                        "Nira visitor",
+                        "Visitor check in"
                     });
 
                     GrammarBuilder gb = new GrammarBuilder(choices);

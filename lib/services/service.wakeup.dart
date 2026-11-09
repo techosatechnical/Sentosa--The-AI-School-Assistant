@@ -11,6 +11,7 @@ class WakeWordService {
 
   Function(String phrase, double confidence)? onWakeWordDetected;
   Function(String phrase)? onInterruptDetected;
+  Function(String phrase)? onVisitorIntentDetected;
   Function(String status)? onStatusUpdate;
 
   bool get isRunning => _isRunning;
@@ -118,6 +119,11 @@ class WakeWordService {
 
         if (lower.contains("stop") || lower.contains("cancel")) {
           onInterruptDetected?.call(phrase);
+          return;
+        }
+
+        if (lower.contains("visitor") || lower.contains("token")) {
+          onVisitorIntentDetected?.call(phrase);
           return;
         }
 

@@ -3,6 +3,7 @@ import 'package:nira/services/service.config.dart';
 import 'package:nira/screens/security/screen.system_instructions.dart';
 import 'package:nira/screens/security/screen.diagnostic_logs.dart';
 import 'package:nira/screens/security/screen.pin_entry.dart';
+import 'package:nira/screens/security/screen.visitor_admin.dart';
 import 'package:nira/widgets/widget.toast.dart';
 
 class AiConfigScreen extends StatefulWidget {
@@ -649,6 +650,104 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
     );
   }
 
+  Widget _buildVisitorReportsCard() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const VisitorAdminScreen(),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(22),
+        splashColor: const Color(0xFF0284C7).withValues(alpha: 0.18),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F9FF),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFBAE6FD), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F2942).withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFE0F2FE),
+                  border: Border.all(color: const Color(0xFF7DD3FC)),
+                ),
+                child: const Icon(
+                  Icons.confirmation_number_rounded,
+                  color: Color(0xFF0284C7),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Visitor Token & Email Report Console",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F2942),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      "Add, edit, or delete daily report email recipients, view visitor logs by date, and configure SMTP.",
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF0284C7),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0284C7).withValues(alpha: 0.35),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildDiagnosticsCard() {
     return Material(
       color: Colors.transparent,
@@ -975,6 +1074,17 @@ class _AiConfigScreenState extends State<AiConfigScreen> {
                         ),
                         const SizedBox(height: 14),
                         _buildInstructionsCard(),
+                        const SizedBox(height: 32),
+                        _buildSectionHeader(
+                          icon: Icons.mark_email_read_rounded,
+                          iconColor: const Color(0xFF0284C7),
+                          iconBg: const Color(0xFFE0F2FE),
+                          title: "Visitor Tokens & Daily Email Reports",
+                          subtitle:
+                              "Manage daily visitor logs, add/edit/delete email report recipients, and configure SMTP schedule.",
+                        ),
+                        const SizedBox(height: 14),
+                        _buildVisitorReportsCard(),
                         const SizedBox(height: 32),
                         _buildSectionHeader(
                           icon: Icons.receipt_long_rounded,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nira/widgets/widgets.dart';
 import 'package:nira/widgets/widget.admissiondesk.dart';
 import 'package:nira/screens/map/screen.maps.dart';
+import 'package:nira/screens/visitor/screen.visitor_checkin.dart';
 
 class HomeQuickActions extends StatelessWidget {
   final VoidCallback onRobotReaction;
@@ -49,15 +50,18 @@ class HomeQuickActions extends StatelessWidget {
     CustomPainter painter;
     switch (index) {
       case 0:
-        painter = AdmissionGraphicPainter(dashColor);
+        painter = VisitorTokenGraphicPainter(dashColor);
         break;
       case 1:
-        painter = PrincipalGraphicPainter(dashColor);
+        painter = AdmissionGraphicPainter(dashColor);
         break;
       case 2:
-        painter = MapGraphicPainter(dashColor);
+        painter = PrincipalGraphicPainter(dashColor);
         break;
       case 3:
+        painter = MapGraphicPainter(dashColor);
+        break;
+      case 4:
       default:
         painter = KgSectionGraphicPainter(dashColor);
         break;
@@ -71,6 +75,16 @@ class HomeQuickActions extends StatelessWidget {
 
   Widget _buildQuickActionsGrid(BuildContext context) {
     final cards = [
+      ActionCardData(
+        title: "Visitor Token\n& Check-In",
+        subtitle: "Parents & visitors pass\n(സന്ദർശക ടോക്കൺ)",
+        bgColor: const Color(0xFFE0F2FE),
+        hoverColor: const Color(0xFFBAE6FD),
+        borderColor: const Color(0xFF7DD3FC),
+        titleColor: const Color(0xFF0F2942),
+        arrowColor: const Color(0xFF0284C7),
+        accentDashColor: const Color(0xFF38BDF8),
+      ),
       ActionCardData(
         title: "Mini Admission\nAssistant",
         subtitle: "Quick admission process\nwith photo & details.",
@@ -115,7 +129,9 @@ class HomeQuickActions extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth >= 768 ? 4 : 2;
+        final crossAxisCount = constraints.maxWidth >= 960
+            ? 5
+            : (constraints.maxWidth >= 680 ? 3 : 2);
         final totalSpacing = 16.0 * (crossAxisCount - 1);
         final itemWidth =
             (constraints.maxWidth - totalSpacing) / crossAxisCount;
@@ -146,7 +162,13 @@ class HomeQuickActions extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          if (card.title == "Mini Admission\nAssistant") {
+          if (card.title == "Visitor Token\n& Check-In") {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const VisitorCheckInScreen(),
+              ),
+            );
+          } else if (card.title == "Mini Admission\nAssistant") {
             showDialog(
               context: context,
               builder: (_) => const AdmissionAssistantDialog(),

@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:nira/screens/home/widgets/widget.wifi_indicator.dart';
+import 'package:nira/screens/visitor/screen.visitor_checkin.dart';
+import 'package:nira/services/service.visitor_report.dart';
 
 class HomeTopHeader extends StatelessWidget {
   final DateTime currentTime;
@@ -79,8 +81,9 @@ class HomeTopHeader extends StatelessWidget {
                     children: [
                       Expanded(
                         child: TextButton(
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.of(context).pop();
+                            await VisitorReportService().flushBeforeShutdown();
                             Process.run('shutdown', ['/r', '/t', '0']);
                           },
                           style: TextButton.styleFrom(
@@ -103,8 +106,9 @@ class HomeTopHeader extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.of(context).pop();
+                            await VisitorReportService().flushBeforeShutdown();
                             onConfirm();
                           },
                           style: ElevatedButton.styleFrom(
@@ -218,6 +222,59 @@ class HomeTopHeader extends StatelessWidget {
 
           Row(
             children: [
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const VisitorCheckInScreen(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0284C7), Color(0xFF0369A1)],
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(
+                            0xFF0284C7,
+                          ).withValues(alpha: 0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.confirmation_number_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          "Visitor Token",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [

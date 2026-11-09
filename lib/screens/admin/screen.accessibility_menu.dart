@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nira/screens/admin/screen.maps_management.dart';
+import 'package:nira/screens/security/screen.visitor_admin.dart';
 import 'package:nira/widgets/widget.actioncard.dart';
 import 'package:nira/widgets/widget.painters.dart';
 
@@ -107,6 +108,27 @@ class AccessibilityMenuScreen extends StatelessWidget {
 
   Widget _buildCardsGrid(BuildContext context) {
     final cards = [
+      (
+        data: ActionCardData(
+          title: "Visitor Tokens\n& Email Reports",
+          subtitle: "Manage recipients, logs\nand daily email reports.",
+          bgColor: const Color(0xFFE0F2FE),
+          hoverColor: const Color(0xFFBAE6FD),
+          borderColor: const Color(0xFF7DD3FC),
+          titleColor: const Color(0xFF0F2942),
+          arrowColor: const Color(0xFF0284C7),
+          accentDashColor: const Color(0xFF38BDF8),
+        ),
+        painter: VisitorTokenGraphicPainter(const Color(0xFF38BDF8)),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const VisitorAdminScreen(),
+            ),
+          );
+        },
+      ),
       (
         data: ActionCardData(
           title: "Principal's\nOffice",

@@ -22,7 +22,8 @@ try {
             "Hey Meera", "Hi Meera", "Hello Meera",
             "Hey Mira", "Hi Mira", "Hello Mira",
             "Nira Stop", "Stop Nira", "Cancel Nira", "Nira Cancel",
-            "Nira Admission", "Admission", "Admissions", "Admission procedure", "Start admission"
+            "Nira Admission", "Admission", "Admissions", "Admission procedure", "Start admission",
+            "Visitor token", "Visitor pass", "Nira visitor", "Visitor check in"
         ))
     $gb = New-Object System.Speech.Recognition.GrammarBuilder($choices)
     $gb.Culture = $targetCulture

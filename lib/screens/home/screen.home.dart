@@ -9,6 +9,7 @@ import 'package:nira/screens/home/widgets/home_bottom_bar.dart';
 import 'package:nira/screens/home/widgets/home_quick_actions.dart';
 import 'package:nira/screens/home/widgets/home_speech_bubble.dart';
 import 'package:nira/screens/home/widgets/home_sentosa_mic.dart';
+import 'package:nira/screens/visitor/screen.visitor_checkin.dart';
 import 'package:nira/main.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -85,6 +86,10 @@ class _HomeScreenState extends State<HomeScreen>
     {
       'hi': 'Here to help! 🚀',
       'text': 'Looking for buses, the KG section,\nor your next class?',
+    },
+    {
+      'hi': 'Visiting School? 🎟️',
+      'text': 'Parents & guests can tap "Visitor Token"\nbelow for instant reception check-in!',
     },
   ];
   int _greetingIndex = 0;
@@ -172,6 +177,14 @@ class _HomeScreenState extends State<HomeScreen>
     _wakeWordService.onWakeWordDetected = (phrase, conf) {
       if (!_geminiService.isConnected) {
         _startListening(fromWakeWord: true);
+      }
+    };
+
+    _wakeWordService.onVisitorIntentDetected = (phrase) {
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const VisitorCheckInScreen()),
+        );
       }
     };
 
