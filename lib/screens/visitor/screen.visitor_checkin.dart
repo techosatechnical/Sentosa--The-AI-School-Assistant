@@ -1029,15 +1029,21 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
                     color: const Color(0xFFCBD5E1),
                   ),
                   Expanded(
-                    child: Text(
-                      _phone.isEmpty ? '• • • • • • • • • •' : _phone,
-                      style: TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 3.2,
-                        color: _phone.isEmpty
-                            ? const Color(0xFFCBD5E1)
-                            : const Color(0xFF0F2942),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _phone.isEmpty ? '• • • • • • • • • •' : _phone,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2.5,
+                          color: _phone.isEmpty
+                              ? const Color(0xFFCBD5E1)
+                              : const Color(0xFF0F2942),
+                        ),
                       ),
                     ),
                   ),
