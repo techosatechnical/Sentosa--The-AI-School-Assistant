@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nira/helpers/models/model.visitor.dart';
 import 'package:nira/services/service.config.dart';
+import 'package:nira/services/service.printer.dart';
 import 'package:nira/services/service.visitor.dart';
 import 'package:nira/services/service.visitor_report.dart';
 import 'package:nira/widgets/widget.toast.dart';
@@ -16,18 +17,33 @@ class VisitorAdminScreen extends StatefulWidget {
 
 class _VisitorAdminScreenState extends State<VisitorAdminScreen> {
   final ConfigService _config = ConfigService();
+  final ThermalPrinterService _printer = ThermalPrinterService();
 
-  int _selectedTab = 0; // 0: Daily Logs, 1: Email Recipients, 2: SMTP & Schedule
+  int _selectedTab = 0; // 0: Daily Logs, 1: Thermal Printer & Queue, 2: Email Recipients, 3: SMTP & Schedule
   List<String> _availableDates = [];
   String _selectedDate = VisitorService.formatDateKey(DateTime.now());
   List<VisitorRecord> _records = [];
   bool _isLoadingRecords = true;
   bool _isDispatching = false;
+  bool _isRefreshingPrinters = false;
 
   @override
   void initState() {
     super.initState();
+    _printer.addListener(_onPrinterChanged);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _printer.removeListener(_onPrinterChanged);
+    super.dispose();
+  }
+
+  void _onPrinterChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadData({String? targetDate}) async {
@@ -550,8 +566,10 @@ class _VisitorAdminScreenState extends State<VisitorAdminScreen> {
               child: _selectedTab == 0
                   ? _buildLogsTab()
                   : (_selectedTab == 1
-                        ? _buildRecipientsTab()
-                        : _buildScheduleAndSmtpTab()),
+                        ? _buildPrinterAndQueueTab()
+                        : (_selectedTab == 2
+                              ? _buildRecipientsTab()
+                              : _buildScheduleAndSmtpTab())),
             ),
           ],
         ),
@@ -645,10 +663,17 @@ class _VisitorAdminScreenState extends State<VisitorAdminScreen> {
   }
 
   Widget _buildTabSelector() {
+    final pendingCount = _printer.pendingOrFailedJobs.length;
     final tabs = [
       (
         icon: Icons.confirmation_number_outlined,
         title: 'Daily Visitor Logs (${_records.length})',
+      ),
+      (
+        icon: Icons.print_outlined,
+        title: pendingCount > 0
+            ? 'PBX1 Thermal Printer ($pendingCount Queued)'
+            : 'PBX1 Thermal Printer',
       ),
       (
         icon: Icons.mark_email_read_outlined,
@@ -689,11 +714,7 @@ class _VisitorAdminScreenState extends State<VisitorAdminScreen> {
                   child: Row(
                     children: [
                       Icon(
-                        i == 0
-                            ? Icons.confirmation_number_outlined
-                            : (i == 1
-                                  ? Icons.mark_email_read_outlined
-                                  : Icons.schedule_send_outlined),
+                        tabs[i].icon,
                         size: 18,
                         color: isSel ? Colors.white : const Color(0xFF475569),
                       ),
@@ -973,6 +994,10 @@ class _VisitorAdminScreenState extends State<VisitorAdminScreen> {
                           const Divider(color: Color(0xFFF1F5F9), height: 16),
                       itemBuilder: (context, index) {
                         final r = _records[_records.length - 1 - index];
+                        final job = _printer.getJobForToken(r.tokenId);
+                        final isPrinted = job?.state == PrintJobState.printed;
+                        final isFailed = job?.state == PrintJobState.failed;
+
                         return Row(
                           children: [
                             Container(
@@ -1067,6 +1092,75 @@ class _VisitorAdminScreenState extends State<VisitorAdminScreen> {
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isPrinted
+                                    ? const Color(0xFFDCFCE7)
+                                    : (isFailed
+                                          ? const Color(0xFFFEF3C7)
+                                          : const Color(0xFFF1F5F9)),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                isPrinted
+                                    ? 'Printed'
+                                    : (isFailed ? 'Queued' : 'Saved'),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: isPrinted
+                                      ? const Color(0xFF15803D)
+                                      : (isFailed
+                                            ? const Color(0xFFB45309)
+                                            : const Color(0xFF64748B)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              onPressed: _printer.isPrinting
+                                  ? null
+                                  : () async {
+                                      final res = await _printer
+                                          .printVisitorToken(r);
+                                      if (!context.mounted) return;
+                                      SentosaToast.show(
+                                        context: context,
+                                        message: res.message,
+                                        isError: !res.success,
+                                      );
+                                    },
+                              icon: const Icon(Icons.print_rounded, size: 16),
+                              label: Text(
+                                isFailed ? 'Retry' : 'Reprint',
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: isFailed
+                                    ? const Color(0xFFD97706)
+                                    : const Color(0xFF0284C7),
+                                side: BorderSide(
+                                  color: isFailed
+                                      ? const Color(0xFFF59E0B)
+                                      : const Color(0xFFBAE6FD),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
                           ],
                         );
                       },
@@ -1114,7 +1208,433 @@ class _VisitorAdminScreenState extends State<VisitorAdminScreen> {
     );
   }
 
-  // --- TAB 1: CONFIGURABLE EMAIL RECIPIENTS (ADD / EDIT / DELETE / TOGGLE) ---
+  // --- TAB 1: PBX1 80MM THERMAL PRINTER & RECOVERY PRINT QUEUE ---
+  Widget _buildPrinterAndQueueTab() {
+    final printers = _printer.discoveredPrinters;
+    final failedJobs = _printer.pendingOrFailedJobs;
+    final isReady = _printer.isPrinterReady;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Printer Hardware Status Banner
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isReady
+                    ? const Color(0xFF86EFAC)
+                    : const Color(0xFFFCD34D),
+                width: 1.8,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isReady
+                            ? const Color(0xFFDCFCE7)
+                            : const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        isReady
+                            ? Icons.print_rounded
+                            : Icons.print_disabled_rounded,
+                        size: 28,
+                        color: isReady
+                            ? const Color(0xFF15803D)
+                            : const Color(0xFFB45309),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'PBX1 3-Inch (80mm) USB Thermal Receipt Printer',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF0F2942),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _printer.statusSummary,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: isReady
+                                  ? const Color(0xFF15803D)
+                                  : const Color(0xFFB45309),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _isRefreshingPrinters
+                          ? null
+                          : () async {
+                              setState(() => _isRefreshingPrinters = true);
+                              await _printer.refreshPrinters();
+                              if (mounted) {
+                                setState(() => _isRefreshingPrinters = false);
+                              }
+                            },
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: Text(
+                        _isRefreshingPrinters ? 'Scanning...' : 'Scan USB',
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      onPressed: _printer.isPrinting
+                          ? null
+                          : () async {
+                              final res = await _printer.printTestReceipt();
+                              if (!mounted) return;
+                              SentosaToast.show(
+                                context: context,
+                                message: res.message,
+                                isError: !res.success,
+                              );
+                            },
+                      icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                      label: const Text(
+                        'Print Test Receipt',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0284C7),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 26),
+                _buildToggleRow(
+                  title: 'Automatic Receipt Printing on Token Generation',
+                  subtitle:
+                      'Automatically prints the formatted 80mm visitor pass as soon as a visitor generates a token.',
+                  value: _config.thermalAutoPrintEnabled,
+                  onChanged: (val) async {
+                    await _config.setVisitorReportSettings(
+                      thermalAutoPrintEnabled: val,
+                    );
+                    setState(() {});
+                  },
+                ),
+                const Divider(height: 20),
+                _buildToggleRow(
+                  title: 'Enable Automatic Paper Cutter (ESC/POS GS V 66)',
+                  subtitle:
+                      'Triggers the PBX1 built-in auto-cutter cleanly after feeding the receipt.',
+                  value: _config.thermalAutoCutEnabled,
+                  onChanged: (val) async {
+                    await _config.setVisitorReportSettings(
+                      thermalAutoCutEnabled: val,
+                    );
+                    setState(() {});
+                  },
+                ),
+                const Divider(height: 20),
+                const Text(
+                  'Select Target Windows Print Queue (Auto-detects PBX1 / 80mm USB Printer if unset):',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF475569),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text(
+                        'Auto-Detect PBX1 / USB Thermal',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      selected: _config.thermalPrinterName.isEmpty,
+                      selectedColor: const Color(0xFF0284C7),
+                      labelStyle: TextStyle(
+                        color: _config.thermalPrinterName.isEmpty
+                            ? Colors.white
+                            : const Color(0xFF0F2942),
+                      ),
+                      onSelected: (_) async {
+                        await _config.setVisitorReportSettings(
+                          thermalPrinterName: '',
+                        );
+                        await _printer.refreshPrinters();
+                        setState(() {});
+                      },
+                    ),
+                    ...printers.map((p) {
+                      final sel =
+                          _config.thermalPrinterName.toLowerCase() ==
+                          p.name.toLowerCase();
+                      return ChoiceChip(
+                        label: Text(
+                          '${p.name} (${p.portName})${p.isOnline ? "" : " [Offline]"}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        selected: sel,
+                        selectedColor: const Color(0xFF0284C7),
+                        labelStyle: TextStyle(
+                          color: sel ? Colors.white : const Color(0xFF0F2942),
+                        ),
+                        onSelected: (_) async {
+                          await _config.setVisitorReportSettings(
+                            thermalPrinterName: p.name,
+                          );
+                          await _printer.refreshPrinters();
+                          setState(() {});
+                        },
+                      );
+                    }),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // Print Recovery Queue Card
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Unprinted Token Recovery Queue (${failedJobs.length})',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF0F2942),
+                            ),
+                          ),
+                          const Text(
+                            'If the printer runs out of paper or is unplugged during check-in, tokens are retained here without duplication so they can be printed once ready.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (failedJobs.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: _printer.isPrinting
+                            ? null
+                            : () async {
+                                final (printed, rem) = await _printer
+                                    .retryAllFailedJobs();
+                                if (!mounted) return;
+                                SentosaToast.show(
+                                  context: context,
+                                  message: printed > 0
+                                      ? 'Recovered & printed $printed queued token(s). ($rem remaining)'
+                                      : 'Printer is still offline ($rem token(s) remain queued).',
+                                  isError: printed == 0,
+                                );
+                              },
+                        icon: const Icon(Icons.replay_rounded, size: 18),
+                        label: const Text(
+                          'Retry All Queued Jobs',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD97706),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 14),
+                if (failedJobs.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFBBF7D0)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: Color(0xFF16A34A),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'All generated visitor tokens are accounted for. No failed or pending print jobs in queue.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF15803D),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: failedJobs.length,
+                    separatorBuilder: (_, _) =>
+                        const Divider(color: Color(0xFFF1F5F9), height: 14),
+                    itemBuilder: (context, index) {
+                      final job = failedJobs[index];
+                      final r = job.record;
+                      return Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFFDE68A)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                r.shortToken,
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFFB45309),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${r.visitorName} • ${r.purposeLabel} (To Meet: ${r.personToMeet})',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFF0F2942),
+                                    ),
+                                  ),
+                                  Text(
+                                    'Issued: ${r.formattedDate} ${r.formattedTime} • Attempts: ${job.attempts} • ${job.lastError ?? "Pending print"}',
+                                    style: const TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF92400E),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            ElevatedButton.icon(
+                              onPressed: _printer.isPrinting
+                                  ? null
+                                  : () async {
+                                      final res = await _printer
+                                          .printVisitorToken(
+                                            r,
+                                            instructionEn: job.instructionEn,
+                                          );
+                                      if (!context.mounted) return;
+                                      SentosaToast.show(
+                                        context: context,
+                                        message: res.message,
+                                        isError: !res.success,
+                                      );
+                                    },
+                              icon: const Icon(Icons.print_rounded, size: 16),
+                              label: const Text(
+                                'Print Now',
+                                style: TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0284C7),
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              onPressed: () =>
+                                  _printer.dismissFailedJob(job.tokenId),
+                              tooltip: 'Dismiss from Recovery Queue',
+                              icon: const Icon(
+                                Icons.close_rounded,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- TAB 2: CONFIGURABLE EMAIL RECIPIENTS (ADD / EDIT / DELETE / TOGGLE) ---
   Widget _buildRecipientsTab() {
     final recipients = _config.visitorRecipients;
 

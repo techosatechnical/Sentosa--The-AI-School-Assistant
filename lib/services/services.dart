@@ -7,5 +7,6 @@ export 'service.diagnostics.dart';
 export 'service.keyboard.dart';
 export 'service.visitor.dart';
 export 'service.visitor_report.dart';
+export 'service.printer.dart';
 
 

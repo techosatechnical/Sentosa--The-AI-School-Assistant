@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nira/screens/splash/screen.splash.dart';
 import 'package:nira/services/service.config.dart';
+import 'package:nira/services/service.printer.dart';
 import 'package:nira/services/service.visitor.dart';
 import 'package:nira/services/service.visitor_report.dart';
 import 'package:window_manager/window_manager.dart';
@@ -9,6 +10,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ConfigService().init();
   await VisitorService().init();
+  await ThermalPrinterService().init();
   await VisitorReportService().init();
   await windowManager.ensureInitialized();
 

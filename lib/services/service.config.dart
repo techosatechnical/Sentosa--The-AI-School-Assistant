@@ -50,6 +50,9 @@ class ConfigService {
   String _dailyReportTime = _defaultReportTime;
   bool _autoDailyReportEnabled = true;
   bool _visitorAudioPromptsEnabled = true;
+  String _thermalPrinterName = '';
+  bool _thermalAutoPrintEnabled = true;
+  bool _thermalAutoCutEnabled = true;
 
   String get pin => _pin;
   String get aiPin => _aiPin;
@@ -71,6 +74,9 @@ class ConfigService {
   String get dailyReportTime => _dailyReportTime;
   bool get autoDailyReportEnabled => _autoDailyReportEnabled;
   bool get visitorAudioPromptsEnabled => _visitorAudioPromptsEnabled;
+  String get thermalPrinterName => _thermalPrinterName;
+  bool get thermalAutoPrintEnabled => _thermalAutoPrintEnabled;
+  bool get thermalAutoCutEnabled => _thermalAutoCutEnabled;
 
   Future<File> get _configFile async {
     final docsDir = await AppStorageService().getDocumentsDirectory();
@@ -133,6 +139,10 @@ class ConfigService {
         _autoDailyReportEnabled = data['autoDailyReportEnabled'] != false;
         _visitorAudioPromptsEnabled =
             data['visitorAudioPromptsEnabled'] != false;
+        _thermalPrinterName =
+            data['thermalPrinterName']?.toString().trim() ?? '';
+        _thermalAutoPrintEnabled = data['thermalAutoPrintEnabled'] != false;
+        _thermalAutoCutEnabled = data['thermalAutoCutEnabled'] != false;
       }
     } catch (e) {
       // Ignore read errors, fall back to default
@@ -159,6 +169,9 @@ class ConfigService {
         'dailyReportTime': _dailyReportTime,
         'autoDailyReportEnabled': _autoDailyReportEnabled,
         'visitorAudioPromptsEnabled': _visitorAudioPromptsEnabled,
+        'thermalPrinterName': _thermalPrinterName,
+        'thermalAutoPrintEnabled': _thermalAutoPrintEnabled,
+        'thermalAutoCutEnabled': _thermalAutoCutEnabled,
       };
       await file.writeAsString(jsonEncode(data));
     } catch (e) {
@@ -234,6 +247,9 @@ class ConfigService {
     String? dailyReportTime,
     bool? autoDailyReportEnabled,
     bool? visitorAudioPromptsEnabled,
+    String? thermalPrinterName,
+    bool? thermalAutoPrintEnabled,
+    bool? thermalAutoCutEnabled,
   }) async {
     if (smtpHost != null) _smtpHost = smtpHost.trim();
     if (smtpPort != null) _smtpPort = smtpPort;
@@ -245,6 +261,15 @@ class ConfigService {
     }
     if (visitorAudioPromptsEnabled != null) {
       _visitorAudioPromptsEnabled = visitorAudioPromptsEnabled;
+    }
+    if (thermalPrinterName != null) {
+      _thermalPrinterName = thermalPrinterName.trim();
+    }
+    if (thermalAutoPrintEnabled != null) {
+      _thermalAutoPrintEnabled = thermalAutoPrintEnabled;
+    }
+    if (thermalAutoCutEnabled != null) {
+      _thermalAutoCutEnabled = thermalAutoCutEnabled;
     }
     await _save();
   }

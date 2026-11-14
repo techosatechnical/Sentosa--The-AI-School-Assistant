@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nira/helpers/models/model.visitor.dart';
+import 'package:nira/services/service.config.dart';
+import 'package:nira/services/service.printer.dart';
 import 'package:nira/services/service.visitor.dart';
 import 'package:nira/widgets/widget.admissiondesk.dart';
-import 'package:nira/widgets/widget.qr_code.dart';
 import 'package:nira/widgets/widget.touch_keyboard.dart';
 
 class VisitorCheckInScreen extends StatefulWidget {
@@ -41,7 +42,8 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
 
   VisitorRecord? _issuedRecord;
   bool _isSubmitting = false;
-  bool _qrWhatsAppMode = true;
+  bool _isPrintingReceipt = false;
+  PrintOutcome? _lastPrintOutcome;
 
   // Hesitation & Inactivity Timers
   Timer? _hesitationTimer;
@@ -289,7 +291,7 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
         break;
       case 4:
         prompt =
-            "Thank you! Your visitor token ${_issuedRecord?.shortToken ?? ''} has been generated. You can scan the QR code to save it on your phone, or show your token at the reception desk.";
+            "Thank you! Your visitor token ${_issuedRecord?.shortToken ?? ''} has been generated and is printing now. Please collect your printed token slip and show it at the reception desk.";
         break;
       default:
         prompt = "Welcome to Nirmala Bhavan.";
@@ -392,12 +394,25 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
         _issuedRecord = record;
         _isSubmitting = false;
         _currentStep = 4;
-        _qrWhatsAppMode = _phone.length == 10;
+        _isPrintingReceipt = true;
+        _lastPrintOutcome = null;
         _tokenAutoCloseSeconds = 25;
       });
       _hesitationTimer?.cancel();
       _inactivityTimer?.cancel();
       _announceCurrentStep();
+
+      if (ConfigService().thermalAutoPrintEnabled) {
+        unawaited(_triggerTokenPrint(record));
+      } else {
+        setState(() {
+          _isPrintingReceipt = false;
+          _lastPrintOutcome = const PrintOutcome(
+            success: false,
+            message: 'Automatic printing is paused in Admin Settings.',
+          );
+        });
+      }
 
       _tokenCountdownTimer?.cancel();
       _tokenCountdownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
@@ -419,6 +434,26 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
         setState(() => _isSubmitting = false);
       }
     }
+  }
+
+  Future<void> _triggerTokenPrint(VisitorRecord record) async {
+    if (!mounted) return;
+    setState(() {
+      _isPrintingReceipt = true;
+      _tokenAutoCloseSeconds = 25;
+    });
+
+    final outcome = await ThermalPrinterService().printVisitorToken(
+      record,
+      instructionEn: _selectedPurpose.instructionEn,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _isPrintingReceipt = false;
+      _lastPrintOutcome = outcome;
+      _tokenAutoCloseSeconds = 25;
+    });
   }
 
   @override
@@ -465,7 +500,7 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
                           alignment: Alignment.topCenter,
                           children: <Widget>[
                             ...previousChildren,
-                            if (currentChild != null) currentChild,
+                            ?currentChild,
                           ],
                         );
                       },
@@ -2061,7 +2096,7 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
                 ],
               ),
               const SizedBox(height: 18),
-              _buildSmartQrPassSection(rec),
+              _buildThermalPrintStatusSection(rec),
               const SizedBox(height: 18),
               Container(
                 width: double.infinity,
@@ -2173,83 +2208,149 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
     );
   }
 
-  Widget _buildSmartQrPassSection(VisitorRecord rec) {
-    final hasValidPhone =
-        rec.phoneNumber.length == 10 && rec.phoneNumber != 'Not Provided';
+  Widget _buildThermalPrintStatusSection(VisitorRecord rec) {
+    final outcome = _lastPrintOutcome;
+    final isSuccess = !_isPrintingReceipt && outcome?.success == true;
+    final isFailed = !_isPrintingReceipt && outcome != null && !outcome.success;
 
-    final studentLine = rec.studentSummary != 'N/A'
-        ? '\nStudent: ${rec.studentSummary}'
-        : '';
+    final Color bgStart;
+    final Color bgEnd;
+    final Color borderColor;
+    final Color accentColor;
+    final IconData statusIcon;
+    final String headlineEn;
+    final String headlineMl;
+    final String subtitleText;
 
-    final offlinePassText =
-        'NIRMALA BHAVAN VISITOR PASS\n'
-        'Token: ${rec.shortToken} (${rec.tokenId})\n'
-        'Time: ${rec.formattedDate} ${rec.formattedTime}\n'
-        'Name: ${rec.visitorName}\n'
-        'Meet: ${rec.personToMeet}\n'
-        'Purpose: ${rec.purposeLabel}'
-        '$studentLine';
-
-    final waMessage =
-        '*Nirmala Bhavan Visitor Pass*\n'
-        'Token: *${rec.shortToken}* (${rec.tokenId})\n'
-        'Time: ${rec.formattedDate} ${rec.formattedTime}\n'
-        'Name: ${rec.visitorName}\n'
-        'Meet: ${rec.personToMeet}\n'
-        'Purpose: ${rec.purposeLabel}'
-        '$studentLine';
-
-    final waPhoneSegment = hasValidPhone ? '91${rec.phoneNumber}' : '';
-    final whatsAppUrl =
-        'https://wa.me/$waPhoneSegment?text=${Uri.encodeComponent(waMessage)}';
-
-    final qrData = _qrWhatsAppMode ? whatsAppUrl : offlinePassText;
+    if (_isPrintingReceipt) {
+      bgStart = const Color(0xFFF0F9FF);
+      bgEnd = const Color(0xFFE0F2FE);
+      borderColor = const Color(0xFF38BDF8);
+      accentColor = const Color(0xFF0284C7);
+      statusIcon = Icons.print_rounded;
+      headlineEn = 'Printing Your Visitor Token Pass...';
+      headlineMl = 'നിങ്ങളുടെ ടോക്കൺ രസീത് പ്രിന്റ് ചെയ്യുന്നു...';
+      subtitleText =
+          'Sending formatted 80mm receipt to PBX1 Thermal Receipt Printer with auto-cut. Please wait a moment.';
+    } else if (isSuccess) {
+      bgStart = const Color(0xFFF0FDF4);
+      bgEnd = const Color(0xFFECFDF5);
+      borderColor = const Color(0xFF86EFAC);
+      accentColor = const Color(0xFF15803D);
+      statusIcon = Icons.receipt_long_rounded;
+      headlineEn = 'Receipt Printed! Please Collect Your Token Slip Below';
+      headlineMl =
+          'ടോക്കൺ രസീത് പ്രിന്റ് ചെയ്തു! ദയവായി പ്രിന്ററിൽ നിന്ന് രസീത് എടുക്കുക';
+      subtitleText =
+          'Printed on ${outcome?.printerName ?? "PBX1 80mm Thermal Printer"}. Please present your printed slip (${rec.shortToken}) at the Reception Desk.';
+    } else {
+      bgStart = const Color(0xFFFFFBEB);
+      bgEnd = const Color(0xFFFEF3C7);
+      borderColor = const Color(0xFFFCD34D);
+      accentColor = const Color(0xFFB45309);
+      statusIcon = Icons.print_disabled_rounded;
+      headlineEn =
+          'Token Saved Safely • Printer Offline or Check USB Connection';
+      headlineMl =
+          'ടോക്കൺ സുരക്ഷിതമായി രേഖപ്പെടുത്തിയിട്ടുണ്ട് • പ്രിന്റർ പരിശോധിക്കുക';
+      subtitleText =
+          '${outcome?.message ?? "Printer is currently unavailable."} Your token ${rec.shortToken} is recorded and queued for automatic recovery printing.';
+    }
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: _qrWhatsAppMode
-              ? [const Color(0xFFF0FDF4), const Color(0xFFECFDF5)]
-              : [const Color(0xFFF8FAFC), const Color(0xFFF0F9FF)],
-        ),
+        gradient: LinearGradient(colors: [bgStart, bgEnd]),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: _qrWhatsAppMode
-              ? const Color(0xFF86EFAC)
-              : const Color(0xFFBAE6FD),
-          width: 1.8,
-        ),
+        border: Border.all(color: borderColor, width: 1.8),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Visual Thermal Receipt Preview Ticket
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 148,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: _qrWhatsAppMode
-                    ? const Color(0xFF22C55E).withValues(alpha: 0.45)
-                    : const Color(0xFF0284C7).withValues(alpha: 0.35),
+                color: accentColor.withValues(alpha: 0.35),
                 width: 2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: KioskQrCodeWidget(
-              data: qrData,
-              size: 156,
-              foregroundColor: _qrWhatsAppMode
-                  ? const Color(0xFF064E3B)
-                  : const Color(0xFF0F2942),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'NIRMALA BHAVAN',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.6,
+                    color: Color(0xFF0F2942),
+                  ),
+                ),
+                const Text(
+                  '80mm THERMAL PASS',
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                const Divider(height: 10, thickness: 1),
+                Text(
+                  rec.shortToken,
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    color: accentColor,
+                    height: 1.05,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  rec.tokenId,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF475569),
+                  ),
+                ),
+                const Divider(height: 10, thickness: 1),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(statusIcon, size: 14, color: accentColor),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        _isPrintingReceipt
+                            ? 'PRINTING...'
+                            : (isSuccess ? 'AUTO-CUT OK' : 'QUEUED'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          color: accentColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 20),
@@ -2257,75 +2358,25 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1-Tap Mode Switcher Pill
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFCBD5E1)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildQrModeButton(
-                        isSelected: _qrWhatsAppMode,
-                        icon: Icons.chat_bubble_outline_rounded,
-                        label: _lang == 'ml'
-                            ? 'വാട്ട്‌സ്ആപ്പ് പാസ്'
-                            : 'WhatsApp Pass',
-                        activeColor: const Color(0xFF16A34A),
-                        onTap: () {
-                          VisitorService().playChime(ChimeType.tap);
-                          setState(() {
-                            _qrWhatsAppMode = true;
-                            _tokenAutoCloseSeconds = 25;
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 4),
-                      _buildQrModeButton(
-                        isSelected: !_qrWhatsAppMode,
-                        icon: Icons.qr_code_2_rounded,
-                        label: _lang == 'ml'
-                            ? 'ഓഫ്‌ലൈൻ QR (No Internet)'
-                            : 'Offline QR Pass',
-                        activeColor: const Color(0xFF0284C7),
-                        onTap: () {
-                          VisitorService().playChime(ChimeType.tap);
-                          setState(() {
-                            _qrWhatsAppMode = false;
-                            _tokenAutoCloseSeconds = 25;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(
-                      _qrWhatsAppMode
-                          ? Icons.phone_android_rounded
-                          : Icons.offline_bolt_rounded,
-                      size: 22,
-                      color: _qrWhatsAppMode
-                          ? const Color(0xFF15803D)
-                          : const Color(0xFF0369A1),
-                    ),
-                    const SizedBox(width: 8),
+                    if (_isPrintingReceipt)
+                      const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.6,
+                          color: Color(0xFF0284C7),
+                        ),
+                      )
+                    else
+                      Icon(statusIcon, size: 26, color: accentColor),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        _qrWhatsAppMode
-                            ? (_lang == 'ml'
-                                  ? 'ഫോൺ ക്യാമറ ഉപയോഗിച്ച് സ്കാൻ ചെയ്ത് വാട്ട്‌സ്ആപ്പിൽ ടോക്കൺ സേവ് ചെയ്യാം'
-                                  : 'Scan to Save Token Pass in Your WhatsApp')
-                            : (_lang == 'ml'
-                                  ? 'ഇന്റർനെറ്റ് ഇല്ലാതെ ഫോണിൽ ടോക്കൺ വിവരങ്ങൾ കാണാൻ സ്കാൻ ചെയ്യുക'
-                                  : 'Offline Digital Pass (No Internet Required)'),
+                        _lang == 'ml' ? headlineMl : headlineEn,
                         style: const TextStyle(
-                          fontSize: 16.5,
+                          fontSize: 17.5,
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF0F2942),
                         ),
@@ -2335,11 +2386,7 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  _qrWhatsAppMode
-                      ? (hasValidPhone
-                            ? 'Opens WhatsApp (+91 ${rec.phoneNumber}) with your complete pass pre-filled — tap Send to keep it on your phone.'
-                            : 'Scan with your phone camera to open WhatsApp with your visitor token pass ready to save.')
-                      : 'Point your phone camera or Google Lens at this QR code to view your complete text pass immediately without mobile data.',
+                  subtitleText,
                   style: const TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
@@ -2347,13 +2394,55 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
                     height: 1.35,
                   ),
                 ),
-                const SizedBox(height: 10),
-                Row(
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
+                    if (!_isPrintingReceipt)
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          VisitorService().playChime(ChimeType.tap);
+                          _triggerTokenPrint(rec);
+                        },
+                        icon: Icon(
+                          isFailed
+                              ? Icons.replay_rounded
+                              : Icons.print_outlined,
+                          size: 18,
+                        ),
+                        label: Text(
+                          isFailed
+                              ? (_lang == 'ml'
+                                    ? 'വീണ്ടും പ്രിന്റ് ചെയ്യുക (Retry Print)'
+                                    : 'Retry Printing Now')
+                              : (_lang == 'ml'
+                                    ? 'വീണ്ടും പ്രിന്റ് ചെയ്യുക (Reprint)'
+                                    : 'Reprint Token Slip'),
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isFailed
+                              ? const Color(0xFFD97706)
+                              : const Color(0xFF0284C7),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
-                        vertical: 5,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -2380,7 +2469,6 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
                     TextButton.icon(
                       onPressed: () {
                         VisitorService().playChime(ChimeType.tap);
@@ -2410,46 +2498,6 @@ class _VisitorCheckInScreenState extends State<VisitorCheckInScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildQrModeButton({
-    required bool isSelected,
-    required IconData icon,
-    required String label,
-    required Color activeColor,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? activeColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? Colors.white : const Color(0xFF475569),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: isSelected ? Colors.white : const Color(0xFF475569),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
